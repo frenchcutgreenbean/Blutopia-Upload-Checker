@@ -31,9 +31,7 @@ class BluChecker:
         self.blu_cooldown = (
             5  # idk what this should be, but definitely don't wanna spam the api
         )
-
-        # In MB
-        self.minimum_size = 800
+        self.minimum_size = 800 # In MB
         # If you want to check for specific qualities and resolutions
         self.allow_dupes = True
         self.resolution_map = {
