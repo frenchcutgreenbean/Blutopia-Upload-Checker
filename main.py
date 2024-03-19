@@ -8,6 +8,7 @@ import json
 import requests
 from thefuzz import fuzz  # For matching titles with tmdb
 import time
+import math
 
 ptn = PTN()
 
@@ -26,7 +27,7 @@ class BluChecker:
         # https://blutopia.cc/users/{YOUR_USERNAME}/apikeys
         self.blu_key = ""
         # If you plan to export l4g batch file
-        self.L4G_path = "/example/Upload Assistant/"
+        self.L4G_path = "/example/Upload-Assistant/"
         self.blu_cooldown = (
             5  # idk what this should be, but definitely don't wanna spam the api
         )
@@ -122,7 +123,7 @@ class BluChecker:
         ]
         self.data_json = {}
         self.data_blu = {
-            "safe": {},  # These are movies where there were no results searching blu for tmdb id and or a given resolution. Probably okay to not check manually.
+            "safe": {},  # These are movies where there were no results searching blu for tmdb id and or a given resolution. Probably safe.
             "risky": {},  # These are movies that exist on blu but the quality [web-dl, remux, etc.] don't exist. These should definitely be checked manually.
             "danger": {},  # These movies exist on blu, but the input file didn't provide a quality. Probably not even worth the time to check manually.
         }
@@ -153,10 +154,12 @@ class BluChecker:
                 dir_data = self.data_json[dir]
             else:
                 dir_data = {}
+            print("Scanning Directories")
             # get all .mkv files in current directory
             for f in glob.glob(f"{dir}**\\*.mkv", recursive=True):
                 file_location = f
                 file_name = self.extract_filename.match(f).group(1)
+                file_size = self.convert_size(os.path.getsize(f))
                 # check if file exists in our database already
                 if file_name in dir_data:
                     continue
@@ -176,6 +179,7 @@ class BluChecker:
                 dir_data[file_name] = {
                     "file_location": file_location,
                     "file_name": file_name,
+                    "file_size": file_size,
                     "title": title,
                     "quality": quality,
                     "resolution": resolution,
@@ -196,6 +200,7 @@ class BluChecker:
                 # if value["tmdb"]:
                 #     continue
                 title = value["title"]
+                print(f"Searching TMDB for {title}")
                 year = f'&year={value['year']}' if value["year"] else ""
                 test = re.search(r" \d{4}$", title)
                 # Extract the year from the title if PTN didn't work properly hopefully this doesn't ruin movies with a year in the title like 2001 a space...
@@ -223,10 +228,13 @@ class BluChecker:
     def search_blu(self):
         for dir in self.data_json:
             for key, value in self.data_json[dir].items():
+                # Don't search for banned releases
                 if value["banned"]:
                     continue
+                # Don't research the api
                 if "blu" in value:
                     continue
+                print(f"Searching Blu for {value["title"]}")
                 tmdb = value["tmdb"]
                 quality = (
                     re.sub(r"[^a-zA-Z]", "", value["quality"])
@@ -258,15 +266,15 @@ class BluChecker:
                                 break
                             else:
                                 value["blu"] = (
-                                    f"On blu, but quality [{quality}] was not found, double check to make sure."
+                                    f"On Blu, but quality [{quality}] was not found, double check to make sure."
                                 )
                     elif blu_resolution:
                         value["blu"] = (
-                            f"Source was found on blu at {resolution}, but couldn't determine input source quality. Manual search required."
+                            f"Source was found on Blu at {resolution}, but couldn't determine input source quality. Manual search required."
                         )
                     else:
                         value["blu"] = (
-                            "Source was found on blu, but couldn't determine input source quality or resolution. Manual search required."
+                            "Source was found on Blu, but couldn't determine input source quality or resolution. Manual search required."
                         )
                 else:
                     value["blu"] = False
@@ -274,39 +282,44 @@ class BluChecker:
         self.save_database()
 
     def create_blu_data(self):
+        print("Creating Blu data.")
         for dir in self.data_json:
             for key, value in self.data_json[dir].items():
                 if value["banned"]:
                     continue
                 title = value["title"]
                 file_location = value["file_location"]
+                file_size = value["file_size"]
                 quality = value["quality"]
                 resolution = value["resolution"]
                 tmdb = value["tmdb"]
+                blu = value["blu"]
+                message = (
+                    "Either not on Blu or new resolution."
+                    if blu is False
+                    else "Dupe!"
+                    if blu is True
+                    else blu
+                )
+
+                info = {
+                    "file_location": file_location,
+                    "quality": quality,
+                    "resolution": resolution,
+                    "tmdb": tmdb,
+                    "blu_message": message,
+                    "file_size": file_size
+                }
+
                 if not value["blu"]:
-                    self.data_blu["safe"][title] = {
-                        "file_location": file_location,
-                        "quality": quality,
-                        "resolution": resolution,
-                        "tmdb": tmdb,
-                    }
+                    self.data_blu["safe"][title] = info
                 elif value["blu"] is True:
                     continue
                 else:
                     if "not found" in value["blu"]:
-                        self.data_blu["risky"][title] = {
-                            "file_location": file_location,
-                            "quality": quality,
-                            "resolution": resolution,
-                            "tmdb": tmdb,
-                        }
+                        self.data_blu["risky"][title] = info
                     else:
-                        self.data_blu["danger"][title] = {
-                            "file_location": file_location,
-                            "quality": quality,
-                            "resolution": resolution,
-                            "tmdb": tmdb,
-                        }
+                        self.data_blu["danger"][title] = info
         self.save_blu_data()
 
     def save_database(self):
@@ -336,6 +349,7 @@ class BluChecker:
             )
             with open("l4g.txt", "a") as f:
                 f.write(line + "\n")
+        print("L4G lines saved to l4g.txt")
 
     def export_all(self):
         for key, value in self.data_blu.items():
@@ -348,6 +362,8 @@ class BluChecker:
                 file_location = v["file_location"]
                 quality = v["quality"]
                 tmdb = v["tmdb"]
+                blu_info = v["blu_message"]
+                file_size = v["file_size"]
                 tmdb_search = f"https://www.themoviedb.org/movie/{tmdb}"
                 blu_tmdb = f"https://blutopia.cc/torrents?view=list&tmdbId={tmdb}"
                 blu_query = f"https://blutopia.cc/torrents?view=list&name={url_query}"
@@ -355,11 +371,23 @@ class BluChecker:
     Movie Title: {title},
     Quality: {quality},
     File Location: {file_location},
+    File Size: {file_size},
     Blu TMDB Search: {blu_tmdb},
     Blu String Search: {blu_query},
-    TMDB: {tmdb_search}"""
+    TMDB: {tmdb_search},
+    Blu Search Info: {blu_info}
+    """
                 with open("manual.txt", "a") as f:
                     f.write(line + "\n")
+        print("Manual info saved to manual.txt")
+    def convert_size(self, size_bytes):
+        if size_bytes == 0:
+            return "0B"
+        size_name = ("B", "KB", "MB", "GB", "TB", "PB", "EB", "ZB", "YB")
+        i = int(math.floor(math.log(size_bytes, 1024)))
+        p = math.pow(1024, i)
+        s = round(size_bytes / p, 2)
+        return "%s %s" % (s, size_name[i])
 
 
 ch = BluChecker()
@@ -369,4 +397,4 @@ ch = BluChecker()
 # ch.search_blu()
 # ch.create_blu_data()
 # ch.export_l4g()
-ch.export_all()
+# ch.export_all()

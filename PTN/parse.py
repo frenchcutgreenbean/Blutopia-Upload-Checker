@@ -41,8 +41,8 @@ class PTN(object):
         if name == 'group':
             self._part(name, [], None, clean)
         elif name == 'episodeName':
-            clean = re.sub('[\._]', ' ', clean)
-            clean = re.sub('_+$', '', clean)
+            clean = re.sub(r'[\._]', ' ', clean)
+            clean = re.sub(r'_+$', '', clean)
             self._part(name, [], None, clean.strip())
 
     def parse(self, name):
