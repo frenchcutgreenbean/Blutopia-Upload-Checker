@@ -197,6 +197,9 @@ class BluChecker:
                     if "quality" in parsed
                     else None
                 )
+                quality = quality.lower() if quality else None
+                if quality == "bluray":
+                    quality = "encode"
                 resolution = (
                     parsed["resolution"].strip() if "resolution" in parsed else None
                 )
@@ -207,11 +210,13 @@ class BluChecker:
                     banned = True
                 elif "season" in parsed or "episode" in parsed:
                     banned = True
-                elif quality and (quality.lower() in self.ignore_qualities):
+                elif quality and (quality in self.ignore_qualities):
                     banned = True
                 if "excess" in parsed:
                     for kw in self.ignore_keywords:
-                        if kw.lower() in parsed["excess"]:
+                        if kw.lower() in (
+                            excess.lower() for excess in parsed["excess"]
+                        ):
                             banned = True
                             break
                 dir_data[file_name] = {
@@ -303,7 +308,7 @@ class BluChecker:
                     if quality:
                         for result in results:
                             info = result["attributes"]
-                            blu_quality = re.sub(r"[^a-zA-Z]", "", info["type"])
+                            blu_quality = re.sub(r"[^a-zA-Z]", "", info["type"]).strip()
                             if blu_quality.lower() == quality.lower():
                                 value["blu"] = True
                                 break
@@ -371,11 +376,10 @@ class BluChecker:
                     self.data_blu["safe"][title] = info
                 elif blu is True:
                     continue
+                elif blu is not False and ("not found" in blu):
+                    self.data_blu["risky"][title] = info
                 else:
-                    if "not found" in blu:
-                        self.data_blu["risky"][title] = info
-                    else:
-                        self.data_blu["danger"][title] = info
+                    self.data_blu["danger"][title] = info
         self.save_blu_data()
 
     def save_database(self):
@@ -455,9 +459,9 @@ class BluChecker:
 
 ch = BluChecker()
 
-# ch.scan_directories()
+ch.scan_directories()
 # ch.get_tmdb()
 # ch.search_blu()
 # ch.create_blu_data()
-# # ch.export_l4g()
+# ch.export_l4g()
 # ch.export_all()

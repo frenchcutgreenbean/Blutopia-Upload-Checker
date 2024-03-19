@@ -6,7 +6,7 @@ patterns = [
     ('episode', r'([ex]([0-9]{2})(?:[^0-9]|$))'),
     ('year', r'([\[\(]?((?:19[0-9]|20[01])[0-9])[\]\)]?)'),
     ('resolution', r'([0-9]{3,4}p)'),
-    ('quality', (r'((?:PPV\.)?[HP]DTV|(?:HD)?CAM|B[DR]Rip|(?:HD-?)?TS|'
+    ('quality', (r'((?:PPV\.)?[HP]DTV|(?:HD)?CAM|REMUX|B[DR]Rip|(?:HD-?)?TS|'
                  r'(?:PPV )?WEB-?DL(?: DVDRip)?|HDRip|DVDRip|DVDRIP|'
                  r'CamRip|W[EB]BRip|BluRay|DvDScr|hdtv|telesync)')),
     ('codec', r'(xvid|[hx]\.?26[45])'),

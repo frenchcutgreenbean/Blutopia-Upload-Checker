@@ -88,7 +88,7 @@ class PTN(object):
             if key == 'episode':
                 sub_pattern = self._escape_regex(match[index['raw']])
                 self.torrent['map'] = re.sub(
-                    sub_pattern, '{episode}', self.torrent['name']
+                    sub_pattern, '{episode}', self.torrent['name'], flags=re.I
                 )
             self._part(key, match, match[index['raw']], clean)
 
