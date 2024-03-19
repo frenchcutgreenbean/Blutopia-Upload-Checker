@@ -1,4 +1,6 @@
 *.json
-*.txt
+manual.txt
+l4g.txt
 *.pyc
 PTN/__pycache__
+test.py

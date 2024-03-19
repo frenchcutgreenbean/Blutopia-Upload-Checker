@@ -5,6 +5,40 @@
 - Use TMDB id + resolution (if found) to search Blutopia for unique movies
 
 
+## Setup
+
+```sh
+git clone https://github.com/frenchcutgreenbean/Blutopia-Upload-Checker.git
+```
+```sh
+cd Blutopia-Upload-Checker
+```
+```sh
+pip install -r requirements.txt
+```
+Edit need variables:
+```py
+# Directories where your movies are stored
+# Format ['/home/torrents', '/home/media'] windows: ['C:\\torrents\\movies']
+self.directories = [""]
+# https://www.themoviedb.org/settings/api
+self.tmdb_key = ""
+# https://blutopia.cc/users/{YOUR_USERNAME}/apikeys
+self.blu_key = ""
+# If you plan to export l4g batch file
+self.L4G_path = "/example/Upload-Assistant/"
+```
+If you plan to use L4G you might need to change stuff here:
+
+```py   
+def export_l4g(self):
+    # L4G Flags for commands -m recommended if you haven't manually checked blu already
+    flags = ["-m", "-blu"]
+    flags = " ".join(flags)
+    # 'python3' on linux
+    python = "py"
+```
+
 ## Functions
 
 ```py
@@ -19,7 +53,6 @@ ch.search_blu() # Search Blu by TMDB ID + resolution. See if movie exists, or if
 ch.create_blu_data() # Creates blu_data.json storing various information.
 ch.export_l4g() # Exports l4g.txt for files most likely safe to upload. Note: probably don't use this.
 ch.export_all() # Exports manual.txt of all possible hits + various useful information to ensure safe uploads.
-
 ```
 
 ## Example Outputs

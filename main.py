@@ -31,7 +31,7 @@ class BluChecker:
         self.blu_cooldown = (
             5  # idk what this should be, but definitely don't wanna spam the api
         )
-        self.minimum_size = 800 # In MB
+        self.minimum_size = 800  # In MB
         # If you want to check for specific qualities and resolutions
         self.allow_dupes = True
         self.resolution_map = {
@@ -151,6 +151,9 @@ class BluChecker:
 
     # Scan given directories
     def scan_directories(self):
+        if not self.directories or not self.directories[0]:
+            print("Please update add directories in main.py")
+            return
         # loop through provided directories
         for dir in self.directories:
             # check if the directory has previously scanned data
@@ -160,7 +163,10 @@ class BluChecker:
                 dir_data = {}
             print("Scanning Directories")
             # get all .mkv files in current directory
-            for f in glob.glob(f"{dir}**\\*.mkv", recursive=True):
+            files = glob.glob(f"{dir}**\\*.mkv", recursive=True) or glob.glob(
+                f"{dir}**/*.mkv", recursive=True
+            )
+            for f in files:
                 file_location = f
                 file_name = self.extract_filename.match(f).group(1)
                 bytes = os.path.getsize(f)
@@ -176,14 +182,24 @@ class BluChecker:
                 )
                 banned = False
 
-                year = str(parsed["year"]) if "year" in parsed else ""
-                title = parsed["title"] + " " + year
+                year = str(parsed["year"]).strip() if "year" in parsed else ""
+                title = parsed["title"].strip()
+                year_in_title = re.search(r"\d{4}", title)
+                # Extract the year from the title if PTN didn't work properly hopefully this doesn't ruin movies with a year in the title like 2001 a space...
+                # but I noticed a lot of failed parses in my testing.
+                if year_in_title and not year:
+                    year = year_in_title.group().strip()
+                    # Only remove year from title if parser didn't add year. Hopefully this helps with the above possible problem
+                    title = re.sub(r"[\d]{4}", "", title).strip()
+                    print("Year manually added to title: ", title, year)
                 quality = (
-                    re.sub(r"[^a-zA-Z]", "", parsed["quality"])
+                    re.sub(r"[^a-zA-Z]", "", parsed["quality"]).strip()
                     if "quality" in parsed
                     else None
                 )
-                resolution = parsed["resolution"] if "resolution" in parsed else None
+                resolution = (
+                    parsed["resolution"].strip() if "resolution" in parsed else None
+                )
                 # Set these to banned so they're saved in our database and we don't re-scan every time.
                 if group in self.banned_groups:
                     banned = True
@@ -215,6 +231,9 @@ class BluChecker:
 
     # Get the tmdbId
     def get_tmdb(self):
+        if not self.data_json:
+            print("Please scan directories first")
+            return
         for dir in self.data_json:
             for key, value in self.data_json[dir].items():
                 if value["banned"]:
@@ -223,29 +242,30 @@ class BluChecker:
                     continue
                 title = value["title"]
                 print(f"Searching TMDB for {title}")
-                year = f'&year={value['year']}' if value["year"] else ""
-                test = re.search(r" \d{4}$", title)
-                # Extract the year from the title if PTN didn't work properly hopefully this doesn't ruin movies with a year in the title like 2001 a space...
-                # but I noticed a lot of failed parses in my testing.
-                if test and not year:
-                    year = test.group().strip()
-                rm_year = re.sub(r"[\d]{4}", "", title)
-                clean_title = re.sub(r"[^a-zA-Z]", " ", rm_year)
+                year = value["year"] if value["year"] else ""
+                year_url = f"&year={year}" if year else ""
+                # This seems possibly problematic
+                clean_title = re.sub(r"[^a-zA-Z]", " ", title)
                 query = clean_title.replace(" ", "%20")
-                url = f"https://api.themoviedb.org/3/search/movie?query={query}&include_adult=false&language=en-US&page=1&api_key={self.tmdb_key}{year}"
+                url = f"https://api.themoviedb.org/3/search/movie?query={query}&include_adult=false&language=en-US&page=1&api_key={self.tmdb_key}{year_url}"
                 res = requests.get(url)
                 data = json.loads(res.content)
-                results = data["results"]
+                results = data["results"] if "results" in data else None
                 # So we don't keep searching queries with no results
                 if not results:
                     value["banned"] = True
+                    continue
                 for result in results:
                     tmdb_title = result["title"]
+                    tmdb_year = (
+                        re.search(r"\d{4}", result["release_date"]).group().strip()
+                    )
                     match = fuzz.ratio(tmdb_title, clean_title)
                     if match >= 85:
                         id = result["id"]
                         value["tmdb"] = id
                         value["tmdb_title"] = tmdb_title
+                        value["tmdb_year"] = tmdb_year
                         break
             self.save_database()
         self.save_database()
@@ -262,7 +282,7 @@ class BluChecker:
                 if value["tmdb"] is None:
                     continue
 
-                print(f"Searching Blu for {value["title"]}")
+                print(f"Searching Blu for {value['title']}")
                 tmdb = value["tmdb"]
                 quality = value["quality"] if value["quality"] else None
                 resolution = value["resolution"] if value["resolution"] else None
@@ -314,12 +334,19 @@ class BluChecker:
                 if "blu" not in value:
                     continue
                 title = value["title"]
+                year = value["year"]
                 file_location = value["file_location"]
                 file_size = value["file_size"]
                 quality = value["quality"]
                 resolution = value["resolution"]
                 tmdb = value["tmdb"]
+                tmdb_year = value["tmdb_year"]
                 blu = value["blu"]
+                extra_info = (
+                    "TMDB Release year and given year are different this might mean improper match manual search required"
+                    if (year != tmdb_year)
+                    else "None"
+                )
                 message = (
                     "Either not on Blu or new resolution."
                     if blu is False
@@ -330,19 +357,22 @@ class BluChecker:
 
                 info = {
                     "file_location": file_location,
+                    "year": year,
                     "quality": quality,
                     "resolution": resolution,
                     "tmdb": tmdb,
+                    "tmdb_year": tmdb_year,
                     "blu_message": message,
                     "file_size": file_size,
+                    "extra_info": extra_info,
                 }
 
-                if not value["blu"]:
+                if not blu and (tmdb_year == year):
                     self.data_blu["safe"][title] = info
-                elif value["blu"] is True:
+                elif blu is True:
                     continue
                 else:
-                    if "not found" in value["blu"]:
+                    if "not found" in blu:
                         self.data_blu["risky"][title] = info
                     else:
                         self.data_blu["danger"][title] = info
@@ -390,18 +420,24 @@ class BluChecker:
                 tmdb = v["tmdb"]
                 blu_info = v["blu_message"]
                 file_size = v["file_size"]
+                extra_info = v["extra_info"]
+                tmdb_year = v["tmdb_year"]
+                year = v["year"]
                 tmdb_search = f"https://www.themoviedb.org/movie/{tmdb}"
                 blu_tmdb = f"https://blutopia.cc/torrents?view=list&tmdbId={tmdb}"
                 blu_query = f"https://blutopia.cc/torrents?view=list&name={url_query}"
                 line = f"""
     Movie Title: {title},
+    File Year: {year},
+    TMDB Year: {tmdb_year},
     Quality: {quality},
     File Location: {file_location},
     File Size: {file_size},
     Blu TMDB Search: {blu_tmdb},
     Blu String Search: {blu_query},
     TMDB: {tmdb_search},
-    Blu Search Info: {blu_info}
+    Blu Search Info: {blu_info},
+    Extra Info: {extra_info}
     """
                 with open("manual.txt", "a") as f:
                     f.write(line + "\n")
@@ -419,9 +455,9 @@ class BluChecker:
 
 ch = BluChecker()
 
-ch.scan_directories()
-ch.get_tmdb()
-ch.search_blu()
-ch.create_blu_data()
-# ch.export_l4g()
-ch.export_all()
+# ch.scan_directories()
+# ch.get_tmdb()
+# ch.search_blu()
+# ch.create_blu_data()
+# # ch.export_l4g()
+# ch.export_all()
