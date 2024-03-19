@@ -1,0 +1,4 @@
+*.json
+*.txt
+*.pyc
+PTN/__pycache__
