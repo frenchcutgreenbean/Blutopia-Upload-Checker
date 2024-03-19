@@ -31,6 +31,9 @@ class BluChecker:
         self.blu_cooldown = (
             5  # idk what this should be, but definitely don't wanna spam the api
         )
+
+        # In MB
+        self.minimum_size = 800
         # If you want to check for specific qualities and resolutions
         self.allow_dupes = True
         self.resolution_map = {
@@ -121,11 +124,14 @@ class BluChecker:
             "ZmN",
             "ZMNT",
         ]
+
+        self.ignore_qualities = ["dvdrip", "webrip", "bdrip"]
+        self.ignore_keywords = ["10bit"]
         self.data_json = {}
         self.data_blu = {
-            "safe": {},  # These are movies where there were no results searching blu for tmdb id and or a given resolution. Probably safe.
-            "risky": {},  # These are movies that exist on blu but the quality [web-dl, remux, etc.] don't exist. These should definitely be checked manually.
-            "danger": {},  # These movies exist on blu, but the input file didn't provide a quality. Probably not even worth the time to check manually.
+            "safe": {},  # These are movies where there were no results searching Blu. Probably safe.
+            "risky": {},  # These are movies that exist on Blu but the quality [web-dl, remux, etc.] don't exist. These should definitely be checked manually.
+            "danger": {},  # These movies exist on Blu, but the input file didn't provide a quality.
         }
         self.extract_filename = re.compile(r"^.*[\\\/](.*)")
         if not os.path.exists("database.json"):
@@ -159,23 +165,41 @@ class BluChecker:
             for f in glob.glob(f"{dir}**\\*.mkv", recursive=True):
                 file_location = f
                 file_name = self.extract_filename.match(f).group(1)
-                file_size = self.convert_size(os.path.getsize(f))
+                bytes = os.path.getsize(f)
+                file_size = self.convert_size(bytes)
                 # check if file exists in our database already
                 if file_name in dir_data:
                     continue
                 parsed = parse(file_name)
-                # ignore television
-                if "season" in parsed or "episode" in parsed:
-                    continue
-                group = re.sub(r"(\..*)", "", parsed["group"])
+                group = (
+                    re.sub(r"(\..*)", "", parsed["group"])
+                    if "group" in parsed
+                    else None
+                )
                 banned = False
-                if group in self.banned_groups:
-                    banned = True
+
                 year = str(parsed["year"]) if "year" in parsed else ""
                 title = parsed["title"] + " " + year
-                quality = parsed["quality"] if "quality" in parsed else None
+                quality = (
+                    re.sub(r"[^a-zA-Z]", "", parsed["quality"])
+                    if "quality" in parsed
+                    else None
+                )
                 resolution = parsed["resolution"] if "resolution" in parsed else None
-
+                # Set these to banned so they're saved in our database and we don't re-scan every time.
+                if group in self.banned_groups:
+                    banned = True
+                elif bytes < (self.minimum_size * 1024) * 1024:
+                    banned = True
+                elif "season" in parsed or "episode" in parsed:
+                    banned = True
+                elif quality and (quality.lower() in self.ignore_qualities):
+                    banned = True
+                if "excess" in parsed:
+                    for kw in self.ignore_keywords:
+                        if kw.lower() in parsed["excess"]:
+                            banned = True
+                            break
                 dir_data[file_name] = {
                     "file_location": file_location,
                     "file_name": file_name,
@@ -197,8 +221,8 @@ class BluChecker:
             for key, value in self.data_json[dir].items():
                 if value["banned"]:
                     continue
-                # if value["tmdb"]:
-                #     continue
+                if value["tmdb"]:
+                    continue
                 title = value["title"]
                 print(f"Searching TMDB for {title}")
                 year = f'&year={value['year']}' if value["year"] else ""
@@ -213,34 +237,36 @@ class BluChecker:
                 url = f"https://api.themoviedb.org/3/search/movie?query={query}&include_adult=false&language=en-US&page=1&api_key={self.tmdb_key}{year}"
                 res = requests.get(url)
                 data = json.loads(res.content)
-                results = data["results"] if data["results"] else []
+                results = data["results"]
+                # So we don't keep searching queries with no results
+                if not results:
+                    value["banned"] = True
                 for result in results:
                     tmdb_title = result["title"]
                     match = fuzz.ratio(tmdb_title, clean_title)
                     if match >= 85:
-                        id = result["id"] if "id" in result else 0
+                        id = result["id"]
                         value["tmdb"] = id
                         value["tmdb_title"] = tmdb_title
                         break
+            self.save_database()
         self.save_database()
 
     # Search blu
     def search_blu(self):
         for dir in self.data_json:
             for key, value in self.data_json[dir].items():
-                # Don't search for banned releases
+                # Skip unnecessary searches.
                 if value["banned"]:
                     continue
-                # Don't research the api
                 if "blu" in value:
                     continue
+                if value["tmdb"] is None:
+                    continue
+
                 print(f"Searching Blu for {value["title"]}")
                 tmdb = value["tmdb"]
-                quality = (
-                    re.sub(r"[^a-zA-Z]", "", value["quality"])
-                    if value["quality"]
-                    else None
-                )
+                quality = value["quality"] if value["quality"] else None
                 resolution = value["resolution"] if value["resolution"] else None
 
                 blu_resolution = (
@@ -250,9 +276,8 @@ class BluChecker:
                     f"&resolutions[0]={blu_resolution}" if blu_resolution else ""
                 )
 
-                if tmdb != "0":
-                    url = f"https://blutopia.cc/api/torrents/filter?tmdbId={tmdb}&categories[]=1&api_token={self.blu_key}{reso_query}"
-                    response = requests.get(url)
+                url = f"https://blutopia.cc/api/torrents/filter?tmdbId={tmdb}&categories[]=1&api_token={self.blu_key}{reso_query}"
+                response = requests.get(url)
                 res_data = json.loads(response.content)
                 results = res_data["data"] if res_data["data"] else None
 
@@ -279,6 +304,7 @@ class BluChecker:
                 else:
                     value["blu"] = False
                 time.sleep(self.blu_cooldown)
+                self.save_database()
         self.save_database()
 
     def create_blu_data(self):
@@ -286,6 +312,8 @@ class BluChecker:
         for dir in self.data_json:
             for key, value in self.data_json[dir].items():
                 if value["banned"]:
+                    continue
+                if "blu" not in value:
                     continue
                 title = value["title"]
                 file_location = value["file_location"]
@@ -308,7 +336,7 @@ class BluChecker:
                     "resolution": resolution,
                     "tmdb": tmdb,
                     "blu_message": message,
-                    "file_size": file_size
+                    "file_size": file_size,
                 }
 
                 if not value["blu"]:
@@ -331,7 +359,7 @@ class BluChecker:
             json.dump(self.data_blu, of)
 
     def export_l4g(self):
-        # L4G Flags for commands -m recomended if you haven't manually checked blu already
+        # L4G Flags for commands -m recommended if you haven't manually checked blu already
         flags = ["-m", "-blu"]
         flags = " ".join(flags)
         # 'python3' on linux
@@ -380,6 +408,7 @@ class BluChecker:
                 with open("manual.txt", "a") as f:
                     f.write(line + "\n")
         print("Manual info saved to manual.txt")
+
     def convert_size(self, size_bytes):
         if size_bytes == 0:
             return "0B"
@@ -392,9 +421,9 @@ class BluChecker:
 
 ch = BluChecker()
 
-# ch.scan_directories()
-# ch.get_tmdb()
-# ch.search_blu()
-# ch.create_blu_data()
+ch.scan_directories()
+ch.get_tmdb()
+ch.search_blu()
+ch.create_blu_data()
 # ch.export_l4g()
-# ch.export_all()
+ch.export_all()
