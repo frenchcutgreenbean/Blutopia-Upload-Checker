@@ -10,6 +10,7 @@ from thefuzz import fuzz  # For matching titles with tmdb
 import time
 import math
 import argparse
+from mediainfo import get_media_info, format_media_info
 
 ptn = PTN()
 
@@ -258,7 +259,7 @@ class BluChecker:
                 data = json.loads(res.content)
                 results = data["results"] if "results" in data else None
                 # So we don't keep searching queries with no results
-                if not results:
+                if not results[0]:
                     value["banned"] = True
                     continue
                 for result in results:
@@ -269,6 +270,8 @@ class BluChecker:
                     tmdb_title = result["title"]
                     tmdb_year = (
                         re.search(r"\d{4}", result["release_date"]).group().strip()
+                        if result["release_date"]
+                        else None
                     )
                     match = fuzz.ratio(tmdb_title, clean_title)
                     if match >= 85:
@@ -335,7 +338,7 @@ class BluChecker:
                 self.save_database()
         self.save_database()
 
-    def create_blu_data(self):
+    def create_blu_data(self, mediainfo=True):
         print("Creating Blu data.")
         for dir in self.data_json:
             for key, value in self.data_json[dir].items():
@@ -355,7 +358,7 @@ class BluChecker:
                 extra_info = (
                     "TMDB Release year and given year are different this might mean improper match manual search required"
                     if (year != tmdb_year)
-                    else "None"
+                    else ""
                 )
                 message = (
                     "Either not on Blu or new resolution."
@@ -364,7 +367,19 @@ class BluChecker:
                     if blu is True
                     else blu
                 )
-
+                media_info = {}
+                if mediainfo is True:
+                    audio_language, subtitles, video_info, audio_info = get_media_info(
+                        file_location
+                    )
+                    if "en" not in audio_language and "en" not in subtitles:
+                        extra_info += "No English subtitles found in media info"
+                    media_info = {
+                        "audio_language(s)": audio_language,
+                        "subtitle(s)": subtitles,
+                        "video_info": video_info,
+                        "audio_info": audio_info,
+                    }
                 info = {
                     "file_location": file_location,
                     "year": year,
@@ -375,6 +390,7 @@ class BluChecker:
                     "blu_message": message,
                     "file_size": file_size,
                     "extra_info": extra_info,
+                    "mediainfo": media_info,
                 }
 
                 if not blu and (tmdb_year == year):
@@ -383,6 +399,8 @@ class BluChecker:
                     continue
                 elif blu is not False and ("not found" in blu):
                     self.data_blu["risky"][title] = info
+                elif "English" in extra_info:
+                    self.data_blu["danger"][title] = info
                 else:
                     self.data_blu["danger"][title] = info
         self.save_blu_data()
@@ -401,13 +419,13 @@ class BluChecker:
         with open(self.database_location, "w") as of:
             json.dump({}, of)
 
-    def run_all(self):
+    def run_all(self, mediainfo=True):
         self.scan_directories()
         self.get_tmdb()
         self.search_blu()
-        self.create_blu_data()
+        self.create_blu_data(mediainfo)
         self.export_l4g()
-        self.export_all()
+        self.export_manual()
 
     def export_l4g(self):
         with open("l4g.txt", "w") as f:
@@ -447,24 +465,37 @@ class BluChecker:
                 tmdb = v["tmdb"]
                 blu_info = v["blu_message"]
                 file_size = v["file_size"]
-                extra_info = v["extra_info"]
+                extra_info = v["extra_info"] if v["extra_info"] else ""
                 tmdb_year = v["tmdb_year"]
                 year = v["year"]
                 tmdb_search = f"https://www.themoviedb.org/movie/{tmdb}"
                 blu_tmdb = f"https://blutopia.cc/torrents?view=list&tmdbId={tmdb}"
                 blu_query = f"https://blutopia.cc/torrents?view=list&name={url_query}"
+                media_info = v["mediainfo"] if v["mediainfo"] else "None"
+                clean_mi = ""
+                if media_info:
+                    audio_language, audio_info, subtitles, video_info = (
+                        format_media_info(media_info)
+                    )
+                    clean_mi = f"""
+                    Language(s): {audio_language}
+                    Subtitle(s): {subtitles}
+                    Audio Info: {audio_info}
+                    Video Info: {video_info}
+                    """
                 line = f"""
-    Movie Title: {title},
-    File Year: {year},
-    TMDB Year: {tmdb_year},
-    Quality: {quality},
-    File Location: {file_location},
-    File Size: {file_size},
-    Blu TMDB Search: {blu_tmdb},
-    Blu String Search: {blu_query},
-    TMDB: {tmdb_search},
-    Blu Search Info: {blu_info},
+    Movie Title: {title}
+    File Year: {year}
+    TMDB Year: {tmdb_year}
+    Quality: {quality}
+    File Location: {file_location}
+    File Size: {file_size}
+    Blu TMDB Search: {blu_tmdb}
+    Blu String Search: {blu_query}
+    TMDB: {tmdb_search}
+    Blu Search Info: {blu_info}
     Extra Info: {extra_info}
+    Media Info: {clean_mi}
     """
                 with open("manual.txt", "a") as f:
                     f.write(line + "\n")
@@ -494,9 +525,27 @@ FUNCTION_MAP = {
     "cleanup": ch.clear_data,
 }
 
-parser.add_argument('commands', choices=FUNCTION_MAP.keys())
+
+parser.add_argument("command", choices=FUNCTION_MAP.keys())
+
+# Add specific flags for the "blu" command
+parser.add_argument(
+    "-m",
+    "--mediainfo",
+    action="store_false",
+    help="Turn off mediainfo scanning, only works on blu",
+)
+parser.add_argument("-v", "--verbose", action="store_true", help="Print more things! Note: this don work yet")
 
 args = parser.parse_args()
 
+# Get the appropriate function based on the command
 func = FUNCTION_MAP[args.command]
-func()
+
+# Call the function with appropriate arguments
+if args.command == "blu":
+    func(mediainfo=args.mediainfo)
+elif args.command == "run-all":
+    func(mediainfo=args.mediainfo)
+else:
+    func()
