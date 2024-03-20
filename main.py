@@ -373,7 +373,7 @@ class BluChecker:
                         file_location
                     )
                     if "en" not in audio_language and "en" not in subtitles:
-                        extra_info += "No English subtitles found in media info"
+                        extra_info += " No English subtitles found in media info"
                     media_info = {
                         "audio_language(s)": audio_language,
                         "subtitle(s)": subtitles,
