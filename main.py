@@ -491,6 +491,7 @@ FUNCTION_MAP = {
     "l4g": ch.export_l4g,
     "manual": ch.export_manual,
     "run-all": ch.run_all,
+    "cleanup": ch.clear_data,
 }
 
 parser.add_argument('commands', choices=FUNCTION_MAP.keys())
