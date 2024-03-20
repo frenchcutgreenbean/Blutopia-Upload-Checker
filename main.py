@@ -261,6 +261,10 @@ class BluChecker:
                     value["banned"] = True
                     continue
                 for result in results:
+                    # This definitely isn't a great solution but I was noticing improper matches. ex: Mother 2009
+                    if result["vote_count"] and result["vote_count"] < 10:
+                        continue
+
                     tmdb_title = result["title"]
                     tmdb_year = (
                         re.search(r"\d{4}", result["release_date"]).group().strip()
@@ -391,6 +395,8 @@ class BluChecker:
             json.dump(self.data_blu, of)
 
     def export_l4g(self):
+        with open("l4g.txt", "w") as f:
+            f.write("")
         # L4G Flags for commands -m recommended if you haven't manually checked blu already
         flags = ["-m", "-blu"]
         flags = " ".join(flags)
@@ -412,6 +418,8 @@ class BluChecker:
         print("L4G lines saved to l4g.txt")
 
     def export_all(self):
+        with open("manual.txt", "w") as f:
+            f.write("")
         for key, value in self.data_blu.items():
             if value:
                 with open("manual.txt", "a") as file:
