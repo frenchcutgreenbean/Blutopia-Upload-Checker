@@ -9,6 +9,7 @@ import requests
 from thefuzz import fuzz  # For matching titles with tmdb
 import time
 import math
+import argparse
 
 ptn = PTN()
 
@@ -394,6 +395,20 @@ class BluChecker:
         with open(self.blu_data_location, "w") as of:
             json.dump(self.data_blu, of)
 
+    def clear_data(self):
+        with open(self.blu_data_location, "w") as of:
+            json.dump({}, of)
+        with open(self.database_location, "w") as of:
+            json.dump({}, of)
+
+    def run_all(self):
+        self.scan_directories()
+        self.get_tmdb()
+        self.search_blu()
+        self.create_blu_data()
+        self.export_l4g()
+        self.export_all()
+
     def export_l4g(self):
         with open("l4g.txt", "w") as f:
             f.write("")
@@ -417,7 +432,7 @@ class BluChecker:
                 f.write(line + "\n")
         print("L4G lines saved to l4g.txt")
 
-    def export_all(self):
+    def export_manual(self):
         with open("manual.txt", "w") as f:
             f.write("")
         for key, value in self.data_blu.items():
@@ -466,13 +481,21 @@ class BluChecker:
 
 
 ch = BluChecker()
+parser = argparse.ArgumentParser()
 
-# How you run the functions. TODO: Add CLI support
-# Comment and uncomment to control what runs. vscode: ctrl+/
+FUNCTION_MAP = {
+    "scan": ch.scan_directories,
+    "tmdb": ch.get_tmdb,
+    "search": ch.search_blu,
+    "blu": ch.create_blu_data,
+    "l4g": ch.export_l4g,
+    "manual": ch.export_manual,
+    "run-all": ch.run_all,
+}
 
-ch.scan_directories()
-ch.get_tmdb()
-ch.search_blu()
-ch.create_blu_data()
-# ch.export_l4g()
-ch.export_all()
+parser.add_argument('commands', choices=FUNCTION_MAP.keys())
+
+args = parser.parse_args()
+
+func = FUNCTION_MAP[args.command]
+func()
