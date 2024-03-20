@@ -61,50 +61,43 @@ blu_data.json
 ```json
 {
     "safe": {
-        "Movie Title": {
-            "file_location": "C:\\Movie Title.2017.AMZN.WEB-DL.AAC2.0.H.264-Kitsune.mkv",
-            "quality": "WEB-DL",
-            "resolution": null,
-            "tmdb": 123,
-            "blu_message": "Either not on Blu or new resolution.",
-            "file_size": "811.42 MB"
-        },
-        "Movie Title 2001": {
-            "file_location": "C:\\Movie Title.2001.AMZN.WEB-DL.DDP2.0.H.264-Kitsune.mkv",
-            "quality": "WEB-DL",
-            "resolution": null,
-            "tmdb": 123,
-            "blu_message": "Either not on Blu or new resolution.",
-            "file_size": "818.43 MB"
-        },
-        "Movie Title 2019": {
-            "file_location": "C:\\Movie Title.2019.AMZN.WEB-DL.AAC2.0.H.264-Kitsune.mkv",
-            "quality": "WEB-DL",
-            "resolution": null,
-            "tmdb": 123,
-            "blu_message": "Either not on Blu or new resolution.",
-            "file_size": "810.0 MB"
-        },
-        "Movie Title 2012": {
-            "file_location": "C:\\Movie Title.2012.AMZN.WEB-DL.AAC2.0.H.264-Kitsune.mkv",
-            "quality": "WEB-DL",
-            "resolution": null,
-            "tmdb": 123,
-            "blu_message": "Either not on Blu or new resolution.",
-            "file_size": "817.78 MB"
-        }
-    },
-    "risky": {},
-    "danger": {
-        "Movie Title 2016": {
-            "file_location": "C:\\Movie Title.1080p.DD5.1.x264-NTG.mkv",
-            "quality": null,
+        "Movie": {
+            "file_location": "/home/movies/Movie.2014.DC.1080p.BluRay.x264.DTS-WiKi.mkv",
+            "year": "2014",
+            "quality": "encode",
             "resolution": "1080p",
             "tmdb": 123,
-            "blu_message": "Source was found on Blu at 1080p, but couldn't determine input source quality. Manual search required.",
-            "file_size": "808.63 MB"
+            "tmdb_year": "2014",
+            "blu_message": "Either not on Blu or new resolution.",
+            "file_size": "9.73 GB",
+            "extra_info": "None"
+        },
+        "Movie": {
+            "file_location": "/home/movies/Movie.2023.1080p.Filmin.WEB-DL.AAC.2.0.H.264-Tayy.mkv",
+            "year": "2023",
+            "quality": "webdl",
+            "resolution": "1080p",
+            "tmdb": 123,
+            "tmdb_year": "2023",
+            "blu_message": "Either not on Blu or new resolution.",
+            "file_size": "4.74 GB",
+            "extra_info": "None"
         }
-    }
+    },
+    "risky": {
+        "Movie": {
+            "file_location": "/home/movies/Movie.1966.1080p.BluRay.REMUX.AVC.FLAC.1.0-EPSiLON.mkv",
+            "year": "1966",
+            "quality": "remux",
+            "resolution": "1080p",
+            "tmdb": 123,
+            "tmdb_year": "1966",
+            "blu_message": "On Blu, but quality [remux] was not found, double check to make sure.",
+            "file_size": "21.95 GB",
+            "extra_info": "None"
+        }
+    },
+    "danger": {}
 }
 ```
 
@@ -120,55 +113,44 @@ manual.txt
 ```
 safe
 
-    Movie Title: Movie Title 2017,
-    Quality: WEB-DL,
-    File Location: C:\Movie Title.2017.AMZN.WEB-DL.AAC2.0.H.264-Kitsune.mkv,
-    File Size: 811.42 MB,
-    Blu TMDB Search: https://blutopia.cc/torrents?view=list&tmdbId=132,
-    Blu String Search: https://blutopia.cc/torrents?view=list&name=Movie%20Title%202017,
-    TMDB: https://www.themoviedb.org/movie/132,
-    Blu Search Info: Either not on Blu or new resolution.
+    Movie Title: Movie,
+    File Year: 2014,
+    TMDB Year: 2014,
+    Quality: encode,
+    File Location: /home/movies/Movie.2014.DC.1080p.BluRay.x264.DTS-WiKi.mkv,
+    File Size: 9.73 GB,
+    Blu TMDB Search: https://blutopia.cc/torrents?view=list&tmdbId=123,
+    Blu String Search: https://blutopia.cc/torrents?view=list&name=Movie,
+    TMDB: https://www.themoviedb.org/movie/123,
+    Blu Search Info: Either not on Blu or new resolution.,
+    Extra Info: None
     
 
-    Movie Title: Movie Title 2001,
-    Quality: WEB-DL,
-    File Location: C:\Movie Title.2001.AMZN.WEB-DL.DDP2.0.H.264-Kitsune.mkv,
-    File Size: 818.43 MB,
+    Movie Title: Movie,
+    File Year: 2023,
+    TMDB Year: 2023,
+    Quality: webdl,
+    File Location: /home/movies/Movie.2023.1080p.Filmin.WEB-DL.AAC.2.0.H.264-Tayy.mkv,
+    File Size: 4.74 GB,
     Blu TMDB Search: https://blutopia.cc/torrents?view=list&tmdbId=123,
-    Blu String Search: https://blutopia.cc/torrents?view=list&name=Movie%20Title%202001,
+    Blu String Search: https://blutopia.cc/torrents?view=list&name=Movie,
     TMDB: https://www.themoviedb.org/movie/123,
-    Blu Search Info: Either not on Blu or new resolution.
+    Blu Search Info: Either not on Blu or new resolution.,
+    Extra Info: None
     
+risky
 
-    Movie Title: Freshman Year 2019,
-    Quality: WEB-DL,
-    File Location: C:\Movie Title.2019.AMZN.WEB-DL.AAC2.0.H.264-Kitsune.mkv,
-    File Size: 810.0 MB,
+    Movie Title: Movie,
+    File Year: 1966,
+    TMDB Year: 1966,
+    Quality: remux,
+    File Location: /home/movies/Movie.1966.1080p.BluRay.REMUX.AVC.FLAC.1.0-EPSiLON.mkv,
+    File Size: 21.95 GB,
     Blu TMDB Search: https://blutopia.cc/torrents?view=list&tmdbId=123,
-    Blu String Search: https://blutopia.cc/torrents?view=list&name=Movie%20Title%202019,
+    Blu String Search: https://blutopia.cc/torrents?view=list&name=Movie,
     TMDB: https://www.themoviedb.org/movie/123,
-    Blu Search Info: Either not on Blu or new resolution.
-    
-
-    Movie Title: Movie Title 2012,
-    Quality: WEB-DL,
-    File Location: C:\Movie Title.2012.AMZN.WEB-DL.AAC2.0.H.264-Kitsune.mkv,
-    File Size: 817.78 MB,
-    Blu TMDB Search: https://blutopia.cc/torrents?view=list&tmdbId=123,
-    Blu String Search: https://blutopia.cc/torrents?view=list&name=Movie%20Title%202012,
-    TMDB: https://www.themoviedb.org/movie/123,
-    Blu Search Info: Either not on Blu or new resolution.
-    
-danger
-
-    Movie Title: Movie Title 2016,
-    Quality: None,
-    File Location: C:\Movie Title.2016.1080p.DD5.1.x264-NTG.mkv,
-    File Size: 808.63 MB,
-    Blu TMDB Search: https://blutopia.cc/torrents?view=list&tmdbId=123,
-    Blu String Search: https://blutopia.cc/torrents?view=list&name=Movie%20Title%202016,
-    TMDB: https://www.themoviedb.org/movie/123,
-    Blu Search Info: Source was found on Blu at 1080p, but couldn't determine input source quality. Manual search required.
+    Blu Search Info: On Blu, but quality [remux] was not found, double check to make sure.,
+    Extra Info: None
     
 ```    
 
