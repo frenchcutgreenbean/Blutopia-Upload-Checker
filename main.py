@@ -467,9 +467,12 @@ class BluChecker:
 
 ch = BluChecker()
 
+# How you run the functions. TODO: Add CLI support
+# Comment and uncomment to control what runs. vscode: ctrl+/
+
 ch.scan_directories()
-# ch.get_tmdb()
-# ch.search_blu()
-# ch.create_blu_data()
+ch.get_tmdb()
+ch.search_blu()
+ch.create_blu_data()
 # ch.export_l4g()
-# ch.export_all()
+ch.export_all()
