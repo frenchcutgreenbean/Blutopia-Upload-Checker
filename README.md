@@ -41,6 +41,23 @@ def export_l4g(self):
     python = "py"
 ```
 
+## Usage
+```sh
+python3 main.py scan
+```
+Accepted commands:
+```
+run-all # Scans, Searches and exports possible uploads
+cleanup # Empties database.json and blu_data.json
+
+# These should be run in order. They need data from previous functions.
+scan # Scans directories in main.py
+tmdb # Searches TMDB for found movies  
+search # Searches blu by TMDB id       
+blu # Creates blu_data.json            
+l4g # Creates l4g commands txt file
+manual # Creates txt file with useful information for possible uploads
+```
 ## Functions
 
 ```py
