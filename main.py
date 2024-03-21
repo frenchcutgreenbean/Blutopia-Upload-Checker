@@ -111,6 +111,9 @@ class Settings:
                 "webrip",
                 "bdrip",
                 "cam",
+                "ts",
+                "telesync",
+                "hdtv"
             ],  # See patterns.py for valid options, note "bluray" get's changed to encode in scan_directories()
             "ignored_keywords": [
                 "10bit"
@@ -179,7 +182,7 @@ class BluChecker:
     def __init__(self):
         self.settings = Settings()
         self.update_settings()
-        self.resolution_map = {
+        self.RESOLUTION_MAP = {
             "4320p": 11,
             "2160p": 1,
             "1080p": 2,
@@ -217,7 +220,7 @@ class BluChecker:
     # Scan given directories
     def scan_directories(self):
         if not self.directories or not self.directories[0]:
-            print("Please update add directories in main.py")
+            print("Please update directories in main.py")
             return
         # loop through provided directories
         for dir in self.directories:
@@ -265,6 +268,8 @@ class BluChecker:
                 quality = quality.lower() if quality else None
                 if quality == "bluray":
                     quality = "encode"
+                elif quality == 'web':
+                    quality = 'webrip'
                 resolution = (
                     parsed["resolution"].strip() if "resolution" in parsed else None
                 )
@@ -367,7 +372,7 @@ class BluChecker:
                 resolution = value["resolution"] if value["resolution"] else None
 
                 blu_resolution = (
-                    self.resolution_map.get(resolution) if resolution else None
+                    self.RESOLUTION_MAP.get(resolution) if resolution else None
                 )
                 reso_query = (
                     f"&resolutions[0]={blu_resolution}" if blu_resolution else ""
@@ -377,10 +382,11 @@ class BluChecker:
                 response = requests.get(url)
                 res_data = json.loads(response.content)
                 results = res_data["data"] if res_data["data"] else None
-
+                resolution_msg = f" at {resolution} " if resolution else ""
                 if results and self.allow_dupes:
                     if quality:
                         for result in results:
+                            
                             info = result["attributes"]
                             blu_quality = re.sub(r"[^a-zA-Z]", "", info["type"]).strip()
                             if blu_quality.lower() == quality.lower():
@@ -388,7 +394,7 @@ class BluChecker:
                                 break
                             else:
                                 value["blu"] = (
-                                    f"On Blu, but quality [{quality}] was not found, double check to make sure."
+                                    f"On Blu{resolution_msg}, but quality [{quality}] was not found, double check to make sure."
                                 )
                     elif blu_resolution:
                         value["blu"] = (
@@ -398,6 +404,8 @@ class BluChecker:
                         value["blu"] = (
                             "Source was found on Blu, but couldn't determine input source quality or resolution. Manual search required."
                         )
+                elif resolution:
+                    value["blu"] = f"Not on Blu{resolution_msg}"
                 else:
                     value["blu"] = False
                 time.sleep(self.blu_cooldown)
@@ -464,10 +472,14 @@ class BluChecker:
                 if " No English subtitles found in media info" in extra_info:
                     self.data_blu["danger"][title] = info
                     continue
-                elif not blu and (tmdb_year == year):
-                    self.data_blu["safe"][title] = info
-                    continue
-                elif blu is not False and ("not found" in blu):
+                elif tmdb_year == year:
+                    if blu is False:
+                        self.data_blu["safe"][title] = info
+                        continue
+                    elif "Not on Blu" in blu:
+                        self.data_blu["safe"][title] = info
+                        continue
+                elif "not found" in blu:
                     self.data_blu["risky"][title] = info
                     continue
                 else:
