@@ -548,10 +548,10 @@ class BluChecker:
                         format_media_info(media_info)
                     )
                     clean_mi = f"""
-                    Language(s): {audio_language}
-                    Subtitle(s): {subtitles}
-                    Audio Info: {audio_info}
-                    Video Info: {video_info}
+        Language(s): {audio_language}
+        Subtitle(s): {subtitles}
+        Audio Info: {audio_info}
+        Video Info: {video_info}
                     """
                 line = f"""
     Movie Title: {title}
