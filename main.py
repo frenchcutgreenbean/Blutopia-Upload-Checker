@@ -159,7 +159,7 @@ class Settings:
                     if os.path.exists(path) and path not in settings[target]:
                         settings[target].append(path)
                         print(value, " Successfully added to ", target)
-                    elif value in settings[target]:
+                    elif path in settings[target]:
                         print(value, " Already in ", target)
                     else:
                         print("Path not found")
