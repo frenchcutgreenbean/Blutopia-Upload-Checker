@@ -128,6 +128,22 @@ class Settings:
         if os.path.getsize("settings.json") > 10:
             with open("settings.json", "r") as file:
                 self.current_settings = json.load(file)
+                self.validate_directories()
+        if not self.current_settings:
+            self.current_settings = self.default_settings
+
+    def validate_directories(self):
+        print("Validating Directories")
+        directories = self.current_settings["directories"]
+        clean = []
+        for dir in directories:
+            if os.path.exists(dir):
+                trailing = os.path.join(dir, "")
+                clean.append(trailing)
+            else:
+                print(dir, "Does not exist, removing")
+        self.current_settings["directories"] = clean
+        self.write_settings()
 
     def update_setting(self, target, value):
         settings = self.current_settings
@@ -138,7 +154,9 @@ class Settings:
             elif isinstance(settings[target], list):
                 if target == "directories":
                     if os.path.exists(value) and value not in settings[target]:
-                        settings[target].append(value)
+                        # Ensure trailing slashes
+                        path = os.path.join(value, "")
+                        settings[target].append(path)
                         print(value, " Successfully added to ", target)
                     elif value in settings[target]:
                         print(value, " Already in ", target)
