@@ -413,6 +413,9 @@ class BluChecker:
                     continue
                 if "blu" not in value:
                     continue
+                blu = value["blu"]
+                if blu is True:
+                    continue
                 title = value["title"]
                 year = value["year"]
                 file_location = value["file_location"]
@@ -421,7 +424,6 @@ class BluChecker:
                 resolution = value["resolution"]
                 tmdb = value["tmdb"]
                 tmdb_year = value["tmdb_year"]
-                blu = value["blu"]
                 extra_info = (
                     "TMDB Release year and given year are different this might mean improper match manual search required"
                     if (year != tmdb_year)
@@ -459,15 +461,15 @@ class BluChecker:
                     "extra_info": extra_info,
                     "mediainfo": media_info,
                 }
-
-                if not blu and (tmdb_year == year):
+                if " No English subtitles found in media info" in extra_info:
+                    self.data_blu["danger"][title] = info
+                    continue
+                elif not blu and (tmdb_year == year):
                     self.data_blu["safe"][title] = info
-                elif blu is True:
                     continue
                 elif blu is not False and ("not found" in blu):
                     self.data_blu["risky"][title] = info
-                elif "English" in extra_info:
-                    self.data_blu["danger"][title] = info
+                    continue
                 else:
                     self.data_blu["danger"][title] = info
         self.save_blu_data()
