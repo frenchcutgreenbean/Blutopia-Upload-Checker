@@ -142,6 +142,7 @@ class Settings:
                 clean.append(trailing)
             else:
                 print(dir, "Does not exist, removing")
+        clean = list(set(clean))
         self.current_settings["directories"] = clean
         self.write_settings()
 
