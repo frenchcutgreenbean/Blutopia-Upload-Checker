@@ -383,31 +383,38 @@ class BluChecker:
                 res_data = json.loads(response.content)
                 results = res_data["data"] if res_data["data"] else None
                 resolution_msg = f" at {resolution} " if resolution else ""
+                blu_message = None
                 if results and self.allow_dupes:
                     if quality:
                         for result in results:
-                            
                             info = result["attributes"]
                             blu_quality = re.sub(r"[^a-zA-Z]", "", info["type"]).strip()
                             if blu_quality.lower() == quality.lower():
-                                value["blu"] = True
+                                blu_message = True
+                                value["blu"] = blu_message
                                 break
                             else:
-                                value["blu"] = (
+                                blu_message =(
                                     f"On Blu{resolution_msg}, but quality [{quality}] was not found, double check to make sure."
                                 )
+                                value["blu"] = blu_message
                     elif blu_resolution:
-                        value["blu"] = (
+                        blu_message = (
                             f"Source was found on Blu at {resolution}, but couldn't determine input source quality. Manual search required."
                         )
+                        value["blu"] = blu_message
                     else:
-                        value["blu"] = (
+                        blu_message= (
                             "Source was found on Blu, but couldn't determine input source quality or resolution. Manual search required."
                         )
+                        value["blu"] = blu_message
                 elif resolution:
-                    value["blu"] = f"Not on Blu{resolution_msg}"
+                    blu_message = f"Not on Blu{resolution_msg}"
+                    value["blu"] = blu_message
                 else:
-                    value["blu"] = False
+                    blu_message = False
+                    value["blu"] = blu_message
+                print(blu_message)
                 time.sleep(self.blu_cooldown)
                 self.save_database()
         self.save_database()
@@ -479,6 +486,9 @@ class BluChecker:
                     elif "Not on Blu" in blu:
                         self.data_blu["safe"][title] = info
                         continue
+                elif blu is False:
+                    self.data_blu["risky"][title] = info
+                    continue
                 elif "not found" in blu:
                     self.data_blu["risky"][title] = info
                     continue
@@ -502,6 +512,7 @@ class BluChecker:
             json.dump({}, of)
         with open(self.database_location, "w") as of:
             json.dump({}, of)
+        print("Data cleared!")
 
     # Run main functions
     def run_all(self, mediainfo=True):
