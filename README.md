@@ -1,4 +1,4 @@
-## Features
+# Features
 
 - Scan directories for movies (.mkv)
 - Parse filenames then search on TMDB
@@ -6,69 +6,82 @@
 - Made for Blutopia, but I don't see why it wouldn't work on any UNIT3D API with the needed editing.
 - Ability to ignore groups, qualities, and other keywords.
 
-
 ## Setup
 
 ```sh
 git clone https://github.com/frenchcutgreenbean/Blutopia-Upload-Checker.git
 ```
+
 ```sh
 cd Blutopia-Upload-Checker
 ```
+
 ```sh
 pip install -r requirements.txt
 ```
 
 ## Usage
+
 ### Run to gen settings.json
+
 ```sh
  python3 .\main.py
 ```
+
 ### Edit settings
-#### Settings needed to work.
+
+#### Settings needed to work
+
 "directories"
-format" ["C:\\", "D:\\"] or linux ["/home/"]
+format ["C:\\", "D:\\"] or linux ["/home/"]
 CLI Command:
+
 ```sh
 python3 main.py add-setting --target directories --set /home/movies/
 ```
+
 -t and -s accepted
 
 "blu_key"
 Your Blutopia api key.
+
 ```sh
 python3 main.py add-setting -t blu_key -s asdasdasd
 ```
 
 "tmdb_key"
 Your TMDB api key.
+
 ```sh
 python3 main.py add-setting -t tmdb_key -s asdasdasd
 ```
 
 You can target and edit most settings following the same structure. Or you can manually edit in settings.json
 
-Accepted commands:
-```
+## Accepted commands
+
 run-all # Scans, Searches and exports possible uploads
 clean-data # Empties database.json and blu_data.json
 add-setting # Adds or edits a setting. --target setting_name --set setting_value
 setting # Prints a given settings value. --target setting_name
 
-# These should be run in order. They need data from previous functions.
+### These should be run in order. They need data from previous functions
+
 scan # Scans directories in main.py
 tmdb # Searches TMDB for found movies  
-search # Searches blu by TMDB id       
-blu # Creates blu_data.json            
+search # Searches blu by TMDB id
+blu # Creates blu_data.json
 l4g # Creates l4g commands txt file
 manual # Creates txt file with useful information for possible uploads
-```
+
 Accepted flags:
-```
+
 -m or --mediainfo This works only with the blu and run-all command it will disable scanning with mediainfo.
-```
+
 ## Example Outputs
+
 ### blu_data.json
+
 ```json
 {
     "safe": {
@@ -179,12 +192,11 @@ Accepted flags:
 ```
 
 l4g.txt
-```
+
 py /example/Upload-Assistant/upload.py -m -blu C:\Movie Title.2017.AMZN.WEB-DL.AAC2.0.H.264-Kitsune.mkv
 py /example/Upload-Assistant/upload.py -m -blu C:\Movie Title.2001.AMZN.WEB-DL.DDP2.0.H.264-Kitsune.mkv
 py /example/Upload-Assistant/upload.py -m -blu C:\Movie Title.AMZN.WEB-DL.AAC2.0.H.264-Kitsune.mkv
 py /example/Upload-Assistant/upload.py -m -blu C:\Movie Title.2012.AMZN.WEB-DL.AAC2.0.H.264-Kitsune.mkv
-```
 
 manual.txt
 ```
@@ -226,9 +238,7 @@ safe
                     Subtitle(s): ['en', 'es']
                     Audio Info: {'track_2': {'language': 'en', 'channels': 2, 'format': 'AC-3'}}
                     Video Info: {'bit_rate': 1136093, 'frame_rate': '29.970', 'format': 'AVC', 'height': 480, 'width': 700}
-                    
-    
-    
+
 danger
 
     Movie Title: Movie,
@@ -247,53 +257,59 @@ danger
                     Subtitle(s): []
                     Audio Info: {'track_2': {'language': 'da', 'channels': 6, 'format': 'AC-3'}}
                     Video Info: {'bit_rate': 3080628, 'frame_rate': '25.000', 'format': 'HEVC', 'height': 800, 'width': 1920}
-                    
-    
-    
-```    
+```
 ## Breakdown
+
 ### Scanning Process
+
 We scan a given directory or directories for every .mkv file.
 
 Then loop through every file and parse information from the filename.
 This includes Titles, file size, quality, resolution, release group, etc.
 
-Based on information extracted we can "ban" a file. 
+Based on information extracted we can "ban" a file.
 This can happen when it's a TV show, the file is too small, from a banned release group, contains and undesired keyword (ie. "10bit"), and undesired qualities (bdrip, webrip, cam).
 This will set the "banned" key in database.json to true. This is to prevent re-scanning files.
 
 ### Search TMDB
+
 We then attempt to search TMDB based on title and if extracted year.
 We then grab useful information from the results if a match was made.
 
 ### Search Blutopia
+
 We take the TMDB ID and resolution (if extracted) and search Blu looping through the results (if any) and comparing qualities.
 
 Any movie that get's results when a resolution and quality was extracted successfully get's ignored.
 
-
 ### Create blu_data.json
+
 #### Mediainfo
+
 This is enabled by default and can be disabled by passing -m or --mediainfo
 
 We scan every potential uploadable file and get useful information.
 
 The most useful being audio and subtitle languages as one of those need to be English to be uploaded to Blu.
 
-#### Taking information from our Blu searches.
+#### Taking information from our Blu searches
 
 If no results or novel resolution we put this in the "safe" category.
 
 If there are results but the quality is novel this goes in the "risky" category.
 
-If there are results but resolution or quality couldn't be extracted from filename this gets put in the "danger" category. 
+If there are results but resolution or quality couldn't be extracted from filename this gets put in the "danger" category.
 
 If the release year extracted differs from the release year from TMDB match, this gets put in the "danger" category and likely means TMDB mismatch.
 
 And finally if media info couldn't find English audio or subtitles, this gets put in the danger category.
 
 ### Export information
+
 #### L4G
+
 We export every safe file to a text file.
+
 #### Manual
+
 We export every potential upload to a text file with useful information.
