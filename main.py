@@ -629,7 +629,7 @@ parser.add_argument(
 parser.add_argument("--set", "-s", help="Specify the new value for the target setting")
 
 parser.add_argument(
-    "--verbose", "-v", action="store_true", help="Enable verbose output", default=False
+    "--verbose", "-v", action="store_true", help="Enable verbose output. Only works with [scan, tmdb, search, and run-all]", default=False
 )
 
 
