@@ -11,209 +11,7 @@ import time
 import math
 import argparse
 from mediainfo import get_media_info, format_media_info
-
-ptn = PTN()
-
-
-def parse(name):
-    return ptn.parse(name)
-
-
-class Settings:
-    def __init__(self):
-        self.default_settings = {
-            "directories": [],
-            "tmdb_key": "",  # https://www.themoviedb.org/settings/api
-            "blu_key": "",  # https://blutopia.cc/users/{YOUR_USERNAME}/apikeys
-            "l4g_path": "",
-            "blu_cooldown": 5,  # In seconds
-            "min_file_size": 800,  # In MB
-            "allow_dupes": True,  # If false only check for completely unique movies
-            "banned_groups": [
-                # Groups banned on blu by default.
-                # Add any you like, blu internals is probably a good idea too.
-                "[Oj]",
-                "3LTON",
-                "4yEo",
-                "ADE",
-                "AFG",
-                "AniHLS",
-                "AnimeRG",
-                "AniURL",
-                "AROMA",
-                "aXXo",
-                "Brrip",
-                "CHD",
-                "CM8",
-                "CrEwSaDe",
-                "d3g",
-                "DeadFish",
-                "DNL",
-                "ELiTE",
-                "eSc",
-                "FaNGDiNG0",
-                "FGT",
-                "Flights",
-                "FRDS",
-                "FUM",
-                "HAiKU",
-                "HD2DVD",
-                "HDS",
-                "HDTime",
-                "Hi10",
-                "ION10",
-                "iPlanet",
-                "JIVE",
-                "KiNGDOM",
-                "Leffe",
-                "LEGi0N",
-                "LOAD",
-                "MeGusta",
-                "mHD",
-                "mSD",
-                "NhaNc3",
-                "nHD",
-                "nikt0",
-                "NOIVTC",
-                "nSD",
-                "PiRaTeS",
-                "playBD",
-                "PlaySD",
-                "playXD",
-                "PRODJi",
-                "RAPiDCOWS",
-                "RARBG",
-                "RetroPeeps",
-                "RDN",
-                "REsuRRecTioN",
-                "RMTeam",
-                "SANTi",
-                "SicFoI",
-                "SPASM",
-                "SPDVD",
-                "STUTTERSHIT",
-                "Telly",
-                "TM",
-                "TRiToN",
-                "UPiNSMOKE",
-                "URANiME",
-                "WAF",
-                "x0r",
-                "xRed",
-                "XS",
-                "YIFY",
-                "ZKBL",
-                "ZmN",
-                "ZMNT",
-            ],
-            "ignored_qualities": [
-                "dvdrip",
-                "webrip",
-                "bdrip",
-                "cam",
-                "ts",
-                "telesync",
-                "hdtv"
-            ],  # See patterns.py for valid options, note "bluray" get's changed to encode in scan_directories()
-            "ignored_keywords": [
-                "10bit"
-            ],  # This could be anything that would end up in the excess of parsed filename.
-        }
-        self.current_settings = None
-
-        try:
-            # Creating settings.json with default settings
-            if not os.path.exists("settings.json") or os.path.getsize("settings.json") < 10:
-                with open("settings.json", "w") as outfile:
-                    json.dump(self.default_settings, outfile)
-            # Load settings.json
-            if os.path.getsize("settings.json") > 10:
-                with open("settings.json", "r") as file:
-                    self.current_settings = json.load(file)
-                    self.validate_directories()
-            if not self.current_settings:
-                self.current_settings = self.default_settings
-        except Exception as e:
-            print("Error initializing settings: ", e)
-
-    def validate_directories(self):
-        try:
-            print("Validating Directories")
-            directories = self.current_settings["directories"]
-            clean = []
-            for dir in directories:
-                if os.path.exists(dir):
-                    trailing = os.path.join(dir, "")
-                    clean.append(trailing)
-                else:
-                    print(dir, "Does not exist, removing")
-            clean = list(set(clean))
-            self.current_settings["directories"] = clean
-            self.write_settings()
-        except Exception as e:
-            print("Error Validating Directories: ", e)
-
-    def update_setting(self, target, value):
-        try:
-            settings = self.current_settings
-            if target in settings:
-                if isinstance(settings[target], str):
-                    settings[target] = value
-                    print(value, " Successfully added to ", target)
-                elif isinstance(settings[target], list):
-                    if target == "directories":
-                        # Ensure trailing slashes
-                        path = os.path.join(value, "")
-                        if os.path.exists(path) and path not in settings[target]:
-                            settings[target].append(path)
-                            print(value, " Successfully added to ", target)
-                        elif path in settings[target]:
-                            print(value, " Already in ", target)
-                        else:
-                            print("Path not found")
-                    else:
-                        settings[target].append(value)
-                        print(value, " Successfully added to ", target)
-                elif isinstance(settings[target], bool):
-                    if "t" in value.lower():
-                        settings[target] = True
-                        print(target, " Set to True")
-                    elif "f" in value.lower():
-                        settings[target] = False
-                        print(target, " Set to False")
-                    else:
-                        print("Value ", value, " Not recognized, try False, F or True, T")
-                elif isinstance(settings[target], int):
-                    settings[target] = int(value)
-                    print(value, " Successfully added to ", target)
-
-            self.current_settings = settings
-            self.write_settings()
-        except Exception as e:
-            print("Error updating setting", e)
-
-    def return_setting(self, target):
-        try:
-            if target in self.current_settings:
-                return(self.current_settings[target])
-            else:
-                return(target, " Not found in current settings.")
-        except Exception as e:
-            print("Error returning settings: ", e)
-
-    def write_settings(self):
-        try:
-            with open("settings.json", "w") as outfile:
-                json.dump(self.current_settings, outfile)
-        except Exception as e:
-            print("Error writing settings: ", e)
-
-    def reset_settings(self):
-        try:
-            with open("settings.json", "w") as outfile:
-                json.dump(self.default_settings, outfile)
-        except Exception as e:
-            print("Error resetting settings: ", e)
+from settings import Settings
 
 
 class BluChecker:
@@ -237,6 +35,7 @@ class BluChecker:
             "risky": {},  # These are movies that exist on Blu but the quality [web-dl, remux, etc.] don't exist. These should definitely be checked manually.
             "danger": {},  # These movies exist on Blu, but the input file didn't provide a quality.
         }
+        self.term_size = os.get_terminal_size()
         self.extract_filename = re.compile(r"^.*[\\\/](.*)")
         try:
             if not os.path.exists("database.json"):
@@ -262,7 +61,7 @@ class BluChecker:
             print("Error loading json files: ", e)
 
     # Scan given directories
-    def scan_directories(self):
+    def scan_directories(self, verbose=False):
         try:
             if not self.directories or not self.directories[0]:
                 print("Please update directories in main.py")
@@ -280,14 +79,21 @@ class BluChecker:
                     f"{dir}**/*.mkv", recursive=True
                 )
                 for f in files:
+                    if verbose:
+                        print("=" * self.term_size.columns)
+                        print(f"Scanning: {f}")
                     file_location = f
                     file_name = self.extract_filename.match(f).group(1)
                     bytes = os.path.getsize(f)
                     file_size = self.convert_size(bytes)
+                    if verbose:
+                        print("File size: ", file_size)
                     # check if file exists in our database already
                     if file_name in dir_data:
+                        if verbose:
+                            print(file_name, "Already exists in database.")
                         continue
-                    parsed = parse(file_name)
+                    parsed = parse_file(file_name)
                     group = (
                         re.sub(r"(\..*)", "", parsed["group"])
                         if "group" in parsed
@@ -304,7 +110,7 @@ class BluChecker:
                         year = year_in_title.group().strip()
                         # Only remove year from title if parser didn't add year. Hopefully this helps with the above possible problem
                         title = re.sub(r"[\d]{4}", "", title).strip()
-                        print("Year manually added to title: ", title, year)
+                        print("Year manually added from title: ", title, year)
                     quality = (
                         re.sub(r"[^a-zA-Z]", "", parsed["quality"]).strip()
                         if "quality" in parsed
@@ -313,25 +119,37 @@ class BluChecker:
                     quality = quality.lower() if quality else None
                     if quality == "bluray":
                         quality = "encode"
-                    elif quality == 'web':
-                        quality = 'webrip'
+                    elif quality == "web":
+                        quality = "webrip"
                     resolution = (
                         parsed["resolution"].strip() if "resolution" in parsed else None
                     )
                     # Set these to banned so they're saved in our database and we don't re-scan every time.
                     if group in self.banned_groups:
+                        if verbose:
+                            print(group, "Is flagged for banning. Banned")
                         banned = True
                     elif bytes < (self.minimum_size * 1024) * 1024:
+                        if verbose:
+                            print(file_size, "Is below accepted size. Banned")
                         banned = True
                     elif "season" in parsed or "episode" in parsed:
+                        if verbose:
+                            print(file_name, "Is flagged as tv. Banned")
                         banned = True
                     elif quality and (quality in self.ignore_qualities):
+                        if verbose:
+                            print(quality, "Is flagged for banning. Banned")
                         banned = True
                     if "excess" in parsed:
                         for kw in self.ignore_keywords:
                             if kw.lower() in (
                                 excess.lower() for excess in parsed["excess"]
                             ):
+                                if verbose:
+                                    print(
+                                        "Keyword ", kw, "Is flagged for banning. Banned"
+                                    )
                                 banned = True
                                 break
                     dir_data[file_name] = {
@@ -345,28 +163,39 @@ class BluChecker:
                         "tmdb": None,
                         "banned": banned,
                     }
-
+                    if verbose and not banned:
+                        print(dir_data[file_name])
                 self.data_json[dir] = dir_data
                 self.save_database()
         except Exception as e:
             print("Error scanning directories: ", e)
 
     # Get the tmdbId
-    def get_tmdb(self):
+    def get_tmdb(self, verbose=False):
         try:
             if not self.data_json:
                 print("Please scan directories first")
                 return
             for dir in self.data_json:
+                if verbose:
+                    print("Searching files from: ", dir)
                 for key, value in self.data_json[dir].items():
                     if value["banned"]:
                         continue
                     if value["tmdb"]:
+                        if value["tmdb"] and verbose:
+                            print(value["title"], " Already searched on TMDB.")
                         continue
+                    if verbose:
+                        print("=" * self.term_size.columns)
                     title = value["title"]
                     print(f"Searching TMDB for {title}")
                     year = value["year"] if value["year"] else ""
                     year_url = f"&year={year}" if year else ""
+                    if year_url and verbose:
+                        print("Searching: ", title, "without year.")
+                    else:
+                        print("Searching: ", title, "with year.", year)
                     # This seems possibly problematic
                     clean_title = re.sub(r"[^a-zA-Z]", " ", title)
                     query = clean_title.replace(" ", "%20")
@@ -377,12 +206,16 @@ class BluChecker:
                         results = data["results"] if "results" in data else None
                         # So we don't keep searching queries with no results
                         if not results:
+                            if verbose:
+                                print("No results, Banning.")
                             value["banned"] = True
                             self.save_database()
                             continue
                         for r in results:
                             # This definitely isn't a great solution but I was noticing improper matches. ex: Mother 2009
-                            if "vote_count" in r and (r["vote_count"] == 0 or r["vote_count"] <= 5):
+                            if "vote_count" in r and (
+                                r["vote_count"] == 0 or r["vote_count"] <= 5
+                            ):
                                 value["banned"] = True
                                 self.save_database()
                                 continue
@@ -394,22 +227,36 @@ class BluChecker:
                                 else None
                             )
                             match = fuzz.ratio(tmdb_title, clean_title)
+                            if verbose:
+                                print(
+                                    "attempting to match result: ",
+                                    tmdb_title,
+                                    "with: ",
+                                    title,
+                                )
                             if match >= 85:
                                 id = r["id"]
                                 value["tmdb"] = id
                                 value["tmdb_title"] = tmdb_title
                                 value["tmdb_year"] = tmdb_year
+                                if verbose:
+                                    print("Match successful")
                                 break
+                        if verbose and not value["tmdb"]:
+                            print("Couldn't find a match.")
                     except Exception as e:
-                        print(f"Something went wrong when searching TMDB for {title}", e)
+                        print(
+                            f"Something went wrong when searching TMDB for {title}", e
+                        )
                 self.save_database()
             self.save_database()
         except Exception as e:
             print("Error searching TMDB: ", e)
 
     # Search blu
-    def search_blu(self):
+    def search_blu(self, verbose=False):
         try:
+            print("Searching Blu")
             for dir in self.data_json:
                 for key, value in self.data_json[dir].items():
                     # Skip unnecessary searches.
@@ -419,11 +266,13 @@ class BluChecker:
                         continue
                     if value["tmdb"] is None:
                         continue
-
-                    print(f"Searching Blu for {value['title']}")
+                    if verbose:
+                        print("=" * self.term_size.columns)
+                        print(f"Searching Blu for {value['title']}")
                     tmdb = value["tmdb"]
                     quality = value["quality"] if value["quality"] else None
                     resolution = value["resolution"] if value["resolution"] else None
+                    title = value["title"]
 
                     blu_resolution = (
                         self.RESOLUTION_MAP.get(resolution) if resolution else None
@@ -442,35 +291,61 @@ class BluChecker:
                             if quality:
                                 for result in results:
                                     info = result["attributes"]
-                                    blu_quality = re.sub(r"[^a-zA-Z]", "", info["type"]).strip()
+                                    blu_quality = re.sub(
+                                        r"[^a-zA-Z]", "", info["type"]
+                                    ).strip()
                                     if blu_quality.lower() == quality.lower():
                                         blu_message = True
                                         value["blu"] = blu_message
+                                        if verbose:
+                                            print(title, "Already on Blu.")
                                         break
                                     else:
-                                        blu_message =(
-                                            f"On Blu{resolution_msg}, but quality [{quality}] was not found, double check to make sure."
-                                        )
+                                        blu_message = f"On Blu{resolution_msg}, but quality [{quality}] was not found, double check to make sure."
                                         value["blu"] = blu_message
+                                        if verbose:
+                                            print(
+                                                title,
+                                                f"On Blu {resolution_msg}, but new quality: ",
+                                                quality,
+                                            )
                             elif blu_resolution:
-                                blu_message = (
-                                    f"Source was found on Blu at {resolution}, but couldn't determine input source quality. Manual search required."
-                                )
+                                blu_message = f"Source was found on Blu at {resolution}, but couldn't determine input source quality. Manual search required."
                                 value["blu"] = blu_message
+                                if verbose:
+                                    print(
+                                        title,
+                                        f"On Blu at {resolution}, but failed to extract quality info from filename.",
+                                    )
                             else:
-                                blu_message= (
-                                    "Source was found on Blu, but couldn't determine input source quality or resolution. Manual search required."
-                                )
+                                blu_message = "Source was found on Blu, but couldn't determine input source quality or resolution. Manual search required."
                                 value["blu"] = blu_message
+                                if verbose:
+                                    print(
+                                        title,
+                                        "On Blu, but failed to extract quality or resolution info from filename.",
+                                    )
                         elif resolution:
                             blu_message = f"Not on Blu{resolution_msg}"
                             value["blu"] = blu_message
+                            if verbose:
+                                print(
+                                    title,
+                                    f"Not on Blu{resolution_msg}",
+                                )
                         else:
                             blu_message = False
                             value["blu"] = blu_message
-                        print(blu_message)
+                            if verbose:
+                                print(
+                                    title,
+                                    "Not on Blu",
+                                )
                     except Exception as e:
-                        print(f"Something went wrong searching blu for {value['title']} ", e)
+                        print(
+                            f"Something went wrong searching blu for {value['title']} ",
+                            e,
+                        )
                     time.sleep(self.blu_cooldown)
                     self.save_database()
             self.save_database()
@@ -512,8 +387,8 @@ class BluChecker:
                     )
                     media_info = {}
                     if mediainfo is True:
-                        audio_language, subtitles, video_info, audio_info = get_media_info(
-                            file_location
+                        audio_language, subtitles, video_info, audio_info = (
+                            get_media_info(file_location)
                         )
                         if "en" not in audio_language and "en" not in subtitles:
                             extra_info += " No English subtitles found in media info"
@@ -585,10 +460,10 @@ class BluChecker:
             print("Error clearing json data: ", e)
 
     # Run main functions
-    def run_all(self, mediainfo=True):
-        self.scan_directories()
-        self.get_tmdb()
-        self.search_blu()
+    def run_all(self, mediainfo=True, verbose = False):
+        self.scan_directories(verbose)
+        self.get_tmdb(verbose)
+        self.search_blu(verbose)
         self.create_blu_data(mediainfo)
         self.export_l4g()
         self.export_manual()
@@ -642,7 +517,9 @@ class BluChecker:
                     year = v["year"]
                     tmdb_search = f"https://www.themoviedb.org/movie/{tmdb}"
                     blu_tmdb = f"https://blutopia.cc/torrents?view=list&tmdbId={tmdb}"
-                    blu_query = f"https://blutopia.cc/torrents?view=list&name={url_query}"
+                    blu_query = (
+                        f"https://blutopia.cc/torrents?view=list&name={url_query}"
+                    )
                     media_info = v["mediainfo"] if v["mediainfo"] else "None"
                     clean_mi = ""
                     if media_info:
@@ -710,6 +587,13 @@ class BluChecker:
         return "%s %s" % (s, size_name[i])
 
 
+ptn = PTN()
+
+
+def parse_file(name):
+    return ptn.parse(name)
+
+
 ch = BluChecker()
 parser = argparse.ArgumentParser()
 
@@ -735,26 +619,38 @@ parser.add_argument(
     "--mediainfo",
     action="store_false",
     help="Turn off mediainfo scanning, only works on blu",
+    default=True,
 )
 parser.add_argument(
-    "--target", "-t",
+    "--target",
+    "-t",
     help="Specify the target setting to update. Valid targets: directories, tmdb_key, blu_key, l4g_path, blu_cooldown, min_file_size, allow_dupes, banned_groups, ignored_qualities, ignored_keywords",
 )
 parser.add_argument("--set", "-s", help="Specify the new value for the target setting")
+
+parser.add_argument(
+    "--verbose", "-v", action="store_true", help="Enable verbose output", default=False
+)
+
 
 args = parser.parse_args()
 
 # Get the appropriate function based on the command
 func = FUNCTION_MAP[args.command]
+func_args = {}
+
+# Check if the function accepts mediainfo argument, and if yes, include it
+if "mediainfo" in BluChecker.create_blu_data.__code__.co_varnames:
+    if args.command in {"run-all", "blu"}:
+        func_args["mediainfo"] = args.mediainfo
+
+# Include other specific arguments based on the command
+if args.command in {"setting", "add-setting"}:
+    func_args["target"] = args.target
+if args.command == "add-setting":
+    func_args["set"] = args.set
+if args.command in {"scan", "tmdb", "search", "run-all"}:
+    func_args["verbose"] = args.verbose
 
 # Call the function with appropriate arguments
-if args.command == "blu":
-    func(mediainfo=args.mediainfo)
-elif args.command == "run-all":
-    func(mediainfo=args.mediainfo)
-elif args.command == "add-setting":
-    func(args.target, args.set)
-elif args.command == "setting":
-    func(args.target)
-else:
-    func()
+func(**func_args)
