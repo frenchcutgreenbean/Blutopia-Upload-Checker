@@ -445,7 +445,7 @@ class BluChecker:
                     else ""
                 )
                 message = (
-                    "Either not on Blu or new resolution."
+                    "Not on Blu"
                     if blu is False
                     else "Dupe!"
                     if blu is True
