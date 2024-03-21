@@ -19,23 +19,152 @@ def parse(name):
     return ptn.parse(name)
 
 
+class Settings:
+    def __init__(self):
+        self.default_settings = {
+            "directories": [],
+            "tmdb_key": "",  # https://www.themoviedb.org/settings/api
+            "blu_key": "",  # https://blutopia.cc/users/{YOUR_USERNAME}/apikeys
+            "l4g_path": "",
+            "blu_cooldown": 5,  # In seconds
+            "min_file_size": 800,  # In MB
+            "allow_dupes": True,  # If false only check for completely unique movies
+            "banned_groups": [
+                # Groups banned on blu by default.
+                # Add any you like, blu internals is probably a good idea too.
+                "[Oj]",
+                "3LTON",
+                "4yEo",
+                "ADE",
+                "AFG",
+                "AniHLS",
+                "AnimeRG",
+                "AniURL",
+                "AROMA",
+                "aXXo",
+                "Brrip",
+                "CHD",
+                "CM8",
+                "CrEwSaDe",
+                "d3g",
+                "DeadFish",
+                "DNL",
+                "ELiTE",
+                "eSc",
+                "FaNGDiNG0",
+                "FGT",
+                "Flights",
+                "FRDS",
+                "FUM",
+                "HAiKU",
+                "HD2DVD",
+                "HDS",
+                "HDTime",
+                "Hi10",
+                "ION10",
+                "iPlanet",
+                "JIVE",
+                "KiNGDOM",
+                "Leffe",
+                "LEGi0N",
+                "LOAD",
+                "MeGusta",
+                "mHD",
+                "mSD",
+                "NhaNc3",
+                "nHD",
+                "nikt0",
+                "NOIVTC",
+                "nSD",
+                "PiRaTeS",
+                "playBD",
+                "PlaySD",
+                "playXD",
+                "PRODJi",
+                "RAPiDCOWS",
+                "RARBG",
+                "RetroPeeps",
+                "RDN",
+                "REsuRRecTioN",
+                "RMTeam",
+                "SANTi",
+                "SicFoI",
+                "SPASM",
+                "SPDVD",
+                "STUTTERSHIT",
+                "Telly",
+                "TM",
+                "TRiToN",
+                "UPiNSMOKE",
+                "URANiME",
+                "WAF",
+                "x0r",
+                "xRed",
+                "XS",
+                "YIFY",
+                "ZKBL",
+                "ZmN",
+                "ZMNT",
+            ],
+            "ignored_qualities": [
+                "dvdrip",
+                "webrip",
+                "bdrip",
+                "cam",
+            ],  # See patterns.py for valid options, note "bluray" get's changed to encode in scan_directories()
+            "ignored_keywords": [
+                "10bit"
+            ],  # This could be anything that would end up in the excess of parsed filename.
+        }
+        for key in self.default_settings.keys():
+            print(key)
+        self.current_settings = None
+        # Creating settings.json with default settings
+        if not os.path.exists("settings.json") or os.path.getsize("settings.json") < 10:
+            with open("settings.json", "w") as outfile:
+                json.dump(self.default_settings, outfile)
+        # Load settings.json
+        if os.path.getsize("settings.json") > 10:
+            with open("settings.json", "r") as file:
+                self.current_settings = json.load(file)
+
+    def update_setting(self, target, value):
+        settings = self.current_settings
+        if target in settings:
+            if isinstance(settings[target], str):
+                settings[target] = value
+                print(value, " Successfully added to ", target)
+            elif isinstance(settings[target], list):
+                if target == "directories":
+                    if os.path.exists(value) and value not in settings[target]:
+                        settings[target].append(value)
+                        print(value, " Successfully added to ", target)
+                    elif value in settings[target]:
+                        print(value, " Already in ", target)
+                    else:
+                        print("Path not found")
+                else:
+                    settings[target].append(value)
+                    print(value, " Successfully added to ", target)
+            elif isinstance(settings[target], int):
+                settings[target] = int(value)
+                print(value, " Successfully added to ", target)
+        self.current_settings = settings
+        self.write_settings()
+
+    def write_settings(self):
+        with open("settings.json", "w") as outfile:
+            json.dump(self.current_settings, outfile)
+
+    def reset_settings(self):
+        with open("settings.json", "w") as outfile:
+            json.dump(self.default_settings, outfile)
+
+
 class BluChecker:
     def __init__(self):
-        # Directories where your movies are stored
-        # Format ['/home/torrents', '/home/media'] windows: ['C:\\torrents\\movies']
-        self.directories = [""]
-        # https://www.themoviedb.org/settings/api
-        self.tmdb_key = ""
-        # https://blutopia.cc/users/{YOUR_USERNAME}/apikeys
-        self.blu_key = ""
-        # If you plan to export l4g batch file
-        self.L4G_path = "/example/Upload-Assistant/"
-        self.blu_cooldown = (
-            5  # idk what this should be, but definitely don't wanna spam the api
-        )
-        self.minimum_size = 800  # In MB
-        # If you want to check for specific qualities and resolutions
-        self.allow_dupes = True
+        self.settings = Settings()
+        self.update_settings()
         self.resolution_map = {
             "4320p": 11,
             "2160p": 1,
@@ -47,86 +176,6 @@ class BluChecker:
             "480p": 8,
             "480i": 9,
         }
-
-        # Groups banned on blu, you could also add groups like blu internals here to not search stuff probably already on blu
-        self.banned_groups = [
-            "[Oj]",
-            "3LTON",
-            "4yEo",
-            "ADE",
-            "AFG",
-            "AniHLS",
-            "AnimeRG",
-            "AniURL",
-            "AROMA",
-            "aXXo",
-            "Brrip",
-            "CHD",
-            "CM8",
-            "CrEwSaDe",
-            "d3g",
-            "DeadFish",
-            "DNL",
-            "ELiTE",
-            "eSc",
-            "FaNGDiNG0",
-            "FGT",
-            "Flights",
-            "FRDS",
-            "FUM",
-            "HAiKU",
-            "HD2DVD",
-            "HDS",
-            "HDTime",
-            "Hi10",
-            "ION10",
-            "iPlanet",
-            "JIVE",
-            "KiNGDOM",
-            "Leffe",
-            "LEGi0N",
-            "LOAD",
-            "MeGusta",
-            "mHD",
-            "mSD",
-            "NhaNc3",
-            "nHD",
-            "nikt0",
-            "NOIVTC",
-            "nSD",
-            "PiRaTeS",
-            "playBD",
-            "PlaySD",
-            "playXD",
-            "PRODJi",
-            "RAPiDCOWS",
-            "RARBG",
-            "RetroPeeps",
-            "RDN",
-            "REsuRRecTioN",
-            "RMTeam",
-            "SANTi",
-            "SicFoI",
-            "SPASM",
-            "SPDVD",
-            "STUTTERSHIT",
-            "Telly",
-            "TM",
-            "TRiToN",
-            "UPiNSMOKE",
-            "URANiME",
-            "WAF",
-            "x0r",
-            "xRed",
-            "XS",
-            "YIFY",
-            "ZKBL",
-            "ZmN",
-            "ZMNT",
-        ]
-
-        self.ignore_qualities = ["dvdrip", "webrip", "bdrip"]
-        self.ignore_keywords = ["10bit"]
         self.data_json = {}
         self.data_blu = {
             "safe": {},  # These are movies where there were no results searching Blu. Probably safe.
@@ -501,6 +550,23 @@ class BluChecker:
                     f.write(line + "\n")
         print("Manual info saved to manual.txt")
 
+    def update_settings(self):
+        self.current_settings = self.settings.current_settings
+        self.directories = self.current_settings["directories"]
+        self.tmdb_key = self.current_settings["tmdb_key"]
+        self.blu_key = self.current_settings["blu_key"]
+        self.L4G_path = self.current_settings["l4g_path"]
+        self.blu_cooldown = self.current_settings["blu_cooldown"]
+        self.minimum_size = self.current_settings["min_file_size"]
+        self.allow_dupes = self.current_settings["allow_dupes"]
+        self.banned_groups = self.current_settings["banned_groups"]
+        self.ignore_qualities = self.current_settings["ignored_qualities"]
+        self.ignore_keywords = self.current_settings["ignored_keywords"]
+
+    def update_setting(self, target, value):
+        self.settings.update_setting(target, value)
+        self.update_settings()
+
     def convert_size(self, size_bytes):
         if size_bytes == 0:
             return "0B"
@@ -523,6 +589,7 @@ FUNCTION_MAP = {
     "manual": ch.export_manual,
     "run-all": ch.run_all,
     "cleanup": ch.clear_data,
+    "setting": ch.update_setting,
 }
 
 
@@ -535,7 +602,17 @@ parser.add_argument(
     action="store_false",
     help="Turn off mediainfo scanning, only works on blu",
 )
-parser.add_argument("-v", "--verbose", action="store_true", help="Print more things! Note: this don work yet")
+parser.add_argument(
+    "-v",
+    "--verbose",
+    action="store_true",
+    help="Print more things! Note: this don work yet",
+)
+parser.add_argument(
+    "--target",
+    help="Specify the target setting to update. Valid targets: directories, tmdb_key, blu_key, l4g_path, blu_cooldown, min_file_size, allow_dupes, banned_groups, ignored_qualities, ignored_keywords",
+)
+parser.add_argument("--value", help="Specify the new value for the target setting")
 
 args = parser.parse_args()
 
@@ -547,5 +624,7 @@ if args.command == "blu":
     func(mediainfo=args.mediainfo)
 elif args.command == "run-all":
     func(mediainfo=args.mediainfo)
+elif args.command == "setting":
+    func(args.target, args.value)
 else:
     func()
