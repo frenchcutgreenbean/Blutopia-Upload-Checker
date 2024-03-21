@@ -18,37 +18,42 @@ cd Blutopia-Upload-Checker
 ```sh
 pip install -r requirements.txt
 ```
-Edit needed variables:
-```py
-# Directories where your movies are stored
-# Format ['/home/torrents', '/home/media'] windows: ['C:\\torrents\\movies']
-self.directories = [""]
-# https://www.themoviedb.org/settings/api
-self.tmdb_key = ""
-# https://blutopia.cc/users/{YOUR_USERNAME}/apikeys
-self.blu_key = ""
-# If you plan to export l4g batch file
-self.L4G_path = "/example/Upload-Assistant/"
-```
-If you plan to use L4G you might need to change stuff here:
-
-```py   
-def export_l4g(self):
-    # L4G Flags for commands -m recommended if you haven't manually checked blu already
-    flags = ["-m", "-blu"]
-    flags = " ".join(flags)
-    # 'python3' on linux
-    python = "py"
-```
 
 ## Usage
+### Run to gen settings.json
 ```sh
-python3 main.py run-all
+ python3 .\main.py
 ```
+### Edit settings
+#### Settings needed to work.
+"directories"
+format" ["C:\\", "D:\\"] or linux ["/home/"]
+CLI Command:
+```sh
+python3 main.py add-setting --target directories --set /home/movies/
+```
+-t and -s accepted
+
+"blu_key"
+Your Blutopia api key.
+```sh
+python3 main.py add-setting -t blu_key -s asdasdasd
+```
+
+"tmdb_key"
+Your TMDB api key.
+```sh
+python3 main.py add-setting -t tmdb_key -s asdasdasd
+```
+
+You can target and edit most settings following the same structure. Or you can manually edit in settings.json
+
 Accepted commands:
 ```
 run-all # Scans, Searches and exports possible uploads
-cleanup # Empties database.json and blu_data.json
+clean-data # Empties database.json and blu_data.json
+add-setting # Adds or edits a setting. --target setting_name --set setting_value
+setting # Prints a given settings value. --target setting_name
 
 # These should be run in order. They need data from previous functions.
 scan # Scans directories in main.py
@@ -62,53 +67,6 @@ Accepted flags:
 ```
 -m or --mediainfo This works only with the blu and run-all command it will disable scanning with mediainfo.
 ```
-## Breakdown
-### Scanning Process
-We scan a given directory or directories for every .mkv file.
-
-Then loop through every file and parse information from the filename.
-This includes Titles, file size, quality, resolution, release group, etc.
-
-Based on information extracted we can "ban" a file. 
-This can happen when it's a TV show, the file is too small, from a banned release group, contains and undesired keyword (ie. "10bit"), and undesired qualities (bdrip, webrip, cam).
-This will set the "banned" key in database.json to true. This is to prevent re-scanning files.
-
-### Search TMDB
-We then attempt to search TMDB based on title and if extracted year.
-We then grab useful information from the results if a match was made.
-
-### Search Blutopia
-We take the TMDB ID and resolution (if extracted) and search Blu looping through the results (if any) and comparing qualities.
-
-Any movie that get's results when a resolution and quality was extracted successfully get's ignored.
-
-
-### Create blu_data.json
-#### Mediainfo
-This is enabled by default and can be disabled by passing -m or --mediainfo
-
-We scan every potential uploadable file and get useful information.
-
-The most useful being audio and subtitle languages as one of those need to be English to be uploaded to Blu.
-
-#### Taking information from our Blu searches.
-
-If no results or novel resolution we put this in the "safe" category.
-
-If there are results but the quality is novel this goes in the "risky" category.
-
-If there are results but resolution or quality couldn't be extracted from filename this gets put in the "danger" category. 
-
-If the release year extracted differs from the release year from TMDB match, this gets put in the "danger" category and likely means TMDB mismatch.
-
-And finally if media info couldn't find English audio or subtitles, this gets put in the danger category.
-
-### Export information
-#### L4G
-We export every safe file to a text file.
-#### Manual
-We export every potential upload to a text file with useful information.
-
 ## Example Outputs
 ### blu_data.json
 ```json
@@ -293,6 +251,49 @@ danger
     
     
 ```    
+## Breakdown
+### Scanning Process
+We scan a given directory or directories for every .mkv file.
+
+Then loop through every file and parse information from the filename.
+This includes Titles, file size, quality, resolution, release group, etc.
+
+Based on information extracted we can "ban" a file. 
+This can happen when it's a TV show, the file is too small, from a banned release group, contains and undesired keyword (ie. "10bit"), and undesired qualities (bdrip, webrip, cam).
+This will set the "banned" key in database.json to true. This is to prevent re-scanning files.
+
+### Search TMDB
+We then attempt to search TMDB based on title and if extracted year.
+We then grab useful information from the results if a match was made.
+
+### Search Blutopia
+We take the TMDB ID and resolution (if extracted) and search Blu looping through the results (if any) and comparing qualities.
+
+Any movie that get's results when a resolution and quality was extracted successfully get's ignored.
 
 
+### Create blu_data.json
+#### Mediainfo
+This is enabled by default and can be disabled by passing -m or --mediainfo
 
+We scan every potential uploadable file and get useful information.
+
+The most useful being audio and subtitle languages as one of those need to be English to be uploaded to Blu.
+
+#### Taking information from our Blu searches.
+
+If no results or novel resolution we put this in the "safe" category.
+
+If there are results but the quality is novel this goes in the "risky" category.
+
+If there are results but resolution or quality couldn't be extracted from filename this gets put in the "danger" category. 
+
+If the release year extracted differs from the release year from TMDB match, this gets put in the "danger" category and likely means TMDB mismatch.
+
+And finally if media info couldn't find English audio or subtitles, this gets put in the danger category.
+
+### Export information
+#### L4G
+We export every safe file to a text file.
+#### Manual
+We export every potential upload to a text file with useful information.

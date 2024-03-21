@@ -116,8 +116,6 @@ class Settings:
                 "10bit"
             ],  # This could be anything that would end up in the excess of parsed filename.
         }
-        for key in self.default_settings.keys():
-            print(key)
         self.current_settings = None
         # Creating settings.json with default settings
         if not os.path.exists("settings.json") or os.path.getsize("settings.json") < 10:
@@ -146,11 +144,27 @@ class Settings:
                 else:
                     settings[target].append(value)
                     print(value, " Successfully added to ", target)
+            elif isinstance(settings[target], bool):
+                if "t" in value.lower():
+                    settings[target] = True
+                    print(target, " Set to True")
+                elif "f" in value.lower():
+                    settings[target] = False
+                    print(target, " Set to False")
+                else:
+                    print("Value ", value, " Not recognized, try False, F or True, T")
             elif isinstance(settings[target], int):
                 settings[target] = int(value)
                 print(value, " Successfully added to ", target)
+
         self.current_settings = settings
         self.write_settings()
+
+    def return_setting(self, target):
+        if target in self.current_settings:
+            return(self.current_settings[target])
+        else:
+            return(target, " Not found in current settings.")
 
     def write_settings(self):
         with open("settings.json", "w") as outfile:
@@ -387,6 +401,7 @@ class BluChecker:
                 self.save_database()
         self.save_database()
 
+    # Create blu_data.json
     def create_blu_data(self, mediainfo=True):
         print("Creating Blu data.")
         for dir in self.data_json:
@@ -454,20 +469,24 @@ class BluChecker:
                     self.data_blu["danger"][title] = info
         self.save_blu_data()
 
+    # Update database.json
     def save_database(self):
         with open(self.database_location, "w") as of:
             json.dump(self.data_json, of)
 
+    # Update blu_data.json
     def save_blu_data(self):
         with open(self.blu_data_location, "w") as of:
             json.dump(self.data_blu, of)
 
+    # Empty json files
     def clear_data(self):
         with open(self.blu_data_location, "w") as of:
             json.dump({}, of)
         with open(self.database_location, "w") as of:
             json.dump({}, of)
 
+    # Run main functions
     def run_all(self, mediainfo=True):
         self.scan_directories()
         self.get_tmdb()
@@ -476,6 +495,7 @@ class BluChecker:
         self.export_l4g()
         self.export_manual()
 
+    # Export l4g commands to l4g.txt
     def export_l4g(self):
         with open("l4g.txt", "w") as f:
             f.write("")
@@ -499,6 +519,7 @@ class BluChecker:
                 f.write(line + "\n")
         print("L4G lines saved to l4g.txt")
 
+    # Export possible uploads to manual.txt
     def export_manual(self):
         with open("manual.txt", "w") as f:
             f.write("")
@@ -550,6 +571,7 @@ class BluChecker:
                     f.write(line + "\n")
         print("Manual info saved to manual.txt")
 
+    # Settings functions
     def update_settings(self):
         self.current_settings = self.settings.current_settings
         self.directories = self.current_settings["directories"]
@@ -566,6 +588,13 @@ class BluChecker:
     def update_setting(self, target, value):
         self.settings.update_setting(target, value)
         self.update_settings()
+
+    def get_setting(self, target):
+        setting = self.settings.return_setting(target)
+        if setting:
+            print(setting)
+        else:
+            print("Not set yet.")
 
     def convert_size(self, size_bytes):
         if size_bytes == 0:
@@ -588,8 +617,9 @@ FUNCTION_MAP = {
     "l4g": ch.export_l4g,
     "manual": ch.export_manual,
     "run-all": ch.run_all,
-    "cleanup": ch.clear_data,
-    "setting": ch.update_setting,
+    "clear-data": ch.clear_data,
+    "add-setting": ch.update_setting,
+    "setting": ch.get_setting,
 }
 
 
@@ -609,10 +639,10 @@ parser.add_argument(
     help="Print more things! Note: this don work yet",
 )
 parser.add_argument(
-    "--target",
+    "--target", "-t",
     help="Specify the target setting to update. Valid targets: directories, tmdb_key, blu_key, l4g_path, blu_cooldown, min_file_size, allow_dupes, banned_groups, ignored_qualities, ignored_keywords",
 )
-parser.add_argument("--value", help="Specify the new value for the target setting")
+parser.add_argument("--set", "-s", help="Specify the new value for the target setting")
 
 args = parser.parse_args()
 
@@ -624,7 +654,9 @@ if args.command == "blu":
     func(mediainfo=args.mediainfo)
 elif args.command == "run-all":
     func(mediainfo=args.mediainfo)
+elif args.command == "add-setting":
+    func(args.target, args.set)
 elif args.command == "setting":
-    func(args.target, args.value)
+    func(args.target)
 else:
     func()
