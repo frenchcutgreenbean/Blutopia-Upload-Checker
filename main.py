@@ -322,23 +322,26 @@ class BluChecker:
                 data = json.loads(res.content)
                 results = data["results"] if "results" in data else None
                 # So we don't keep searching queries with no results
-                if not results[0]:
+                if not results:
                     value["banned"] = True
+                    self.save_database()
                     continue
-                for result in results:
+                for r in results:
                     # This definitely isn't a great solution but I was noticing improper matches. ex: Mother 2009
-                    if result["vote_count"] and result["vote_count"] < 10:
+                    if "vote_count" in r and (r["vote_count"] == 0 or r["vote_count"] <= 5):
+                        value["banned"] = True
+                        self.save_database()
                         continue
 
-                    tmdb_title = result["title"]
+                    tmdb_title = r["title"]
                     tmdb_year = (
-                        re.search(r"\d{4}", result["release_date"]).group().strip()
-                        if result["release_date"]
+                        re.search(r"\d{4}", r["release_date"]).group().strip()
+                        if r["release_date"]
                         else None
                     )
                     match = fuzz.ratio(tmdb_title, clean_title)
                     if match >= 85:
-                        id = result["id"]
+                        id = r["id"]
                         value["tmdb"] = id
                         value["tmdb_title"] = tmdb_title
                         value["tmdb_year"] = tmdb_year
