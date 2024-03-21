@@ -153,9 +153,9 @@ class Settings:
                 print(value, " Successfully added to ", target)
             elif isinstance(settings[target], list):
                 if target == "directories":
-                    if os.path.exists(value) and value not in settings[target]:
-                        # Ensure trailing slashes
-                        path = os.path.join(value, "")
+                    # Ensure trailing slashes
+                    path = os.path.join(value, "")
+                    if os.path.exists(path) and path not in settings[target]:
                         settings[target].append(path)
                         print(value, " Successfully added to ", target)
                     elif value in settings[target]:
