@@ -314,7 +314,12 @@ class BluChecker:
                             blu_message = False
                             value["blu"] = blu_message
                         if verbose:
-                            print(blu_message)
+                            if blu_message is True:
+                                print("Already on Blu")
+                            elif blu_message is False:
+                                print("Not on Blu")
+                            else:
+                                print(blu_message)
                     except Exception as e:
                         print(
                             f"Something went wrong searching blu for {value['title']} ",
