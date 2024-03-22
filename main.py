@@ -624,10 +624,11 @@ if "mediainfo" in BluChecker.create_blu_data.__code__.co_varnames:
         func_args["mediainfo"] = args.mediainfo
 
 # Include other specific arguments based on the command
-if args.command in {"setting", "add-setting"}:
+if args.command == "setting":
     func_args["target"] = args.target
 if args.command == "add-setting":
     func_args["set"] = args.set
+    func_args["target"] = args.target
 if args.command in {"scan", "tmdb", "search", "run-all"}:
     func_args["verbose"] = args.verbose
 
