@@ -272,8 +272,6 @@ class BluChecker:
                     tmdb = value["tmdb"]
                     quality = value["quality"] if value["quality"] else None
                     resolution = value["resolution"] if value["resolution"] else None
-                    title = value["title"]
-
                     blu_resolution = (
                         self.RESOLUTION_MAP.get(resolution) if resolution else None
                     )

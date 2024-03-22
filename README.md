@@ -3,8 +3,9 @@
 - Scan directories for movies (.mkv)
 - Parse filenames then search on TMDB
 - Use TMDB id + resolution (if found) to search Blutopia for unique movies
-- Made for Blutopia, but I don't see why it wouldn't work on any UNIT3D API with the needed editing.
 - Ability to ignore groups, qualities, and other keywords.
+- Scan the file with mediainfo to ensure either English audio or English subtitles.
+- Made for Blutopia, but I don't see why it wouldn't work on any UNIT3D API with the needed editing.
 
 ## Setup
 
