@@ -297,50 +297,24 @@ class BluChecker:
                                     if blu_quality.lower() == quality.lower():
                                         blu_message = True
                                         value["blu"] = blu_message
-                                        if verbose:
-                                            print(title, "Already on Blu.")
                                         break
                                     else:
                                         blu_message = f"On Blu{resolution_msg}, but quality [{quality}] was not found, double check to make sure."
                                         value["blu"] = blu_message
-                                        if verbose:
-                                            print(
-                                                title,
-                                                f"On Blu {resolution_msg}, but new quality: ",
-                                                quality,
-                                            )
                             elif blu_resolution:
                                 blu_message = f"Source was found on Blu at {resolution}, but couldn't determine input source quality. Manual search required."
                                 value["blu"] = blu_message
-                                if verbose:
-                                    print(
-                                        title,
-                                        f"On Blu at {resolution}, but failed to extract quality info from filename.",
-                                    )
                             else:
                                 blu_message = "Source was found on Blu, but couldn't determine input source quality or resolution. Manual search required."
                                 value["blu"] = blu_message
-                                if verbose:
-                                    print(
-                                        title,
-                                        "On Blu, but failed to extract quality or resolution info from filename.",
-                                    )
                         elif resolution:
                             blu_message = f"Not on Blu{resolution_msg}"
                             value["blu"] = blu_message
-                            if verbose:
-                                print(
-                                    title,
-                                    f"Not on Blu{resolution_msg}",
-                                )
                         else:
                             blu_message = False
                             value["blu"] = blu_message
-                            if verbose:
-                                print(
-                                    title,
-                                    "Not on Blu",
-                                )
+                        if verbose:
+                            print(blu_message)
                     except Exception as e:
                         print(
                             f"Something went wrong searching blu for {value['title']} ",
