@@ -286,6 +286,8 @@ class BluChecker:
                         res_data = json.loads(response.content)
                         results = res_data["data"] if res_data["data"] else None
                         resolution_msg = f" at {resolution} " if resolution else ""
+                        if resolution and verbose:
+                            print("Resolution detected: ", resolution)
                         blu_message = None
                         if results and self.allow_dupes:
                             if quality:
